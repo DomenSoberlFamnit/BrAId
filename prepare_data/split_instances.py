@@ -1,9 +1,6 @@
 import numpy as np
 
-num_training_samples = 770
-min_testing_samples = 26
-
-def run(dir_braid):
+def run(dir_braid, num_training_samples, min_testing_samples):
     print("Loading data_id.npy")
     data_id = np.load(f'{dir_braid}data_id.npy')
     
@@ -50,7 +47,10 @@ def run(dir_braid):
             
             training_indices = np.concatenate((training_indices, oversample_set)) 
             testing_indices = np.concatenate((testing_indices, samples[split_idx:]))
-            
+    
+    # Shuffle the training indices
+    np.random.shuffle(training_indices)
+
     # Save samples
     training_id = data_id[training_indices]
     training_x = data_x[training_indices]
@@ -69,7 +69,7 @@ def run(dir_braid):
     np.save(f'{dir_braid}training_y.npy', training_y)
 
     print('Saving testing_id.npy')
-    np.save(f'{dir_braid}testing_img.npy', testing_id)
+    np.save(f'{dir_braid}testing_id.npy', testing_id)
 
     print('Saving testing_x.npy')
     np.save(f'{dir_braid}testing_x.npy', testing_x)

@@ -10,11 +10,9 @@ import check_instances
 dir_siwim = '/home/hicup/braid/siwim/'
 dir_braid = '/home/hicup/disk/braid/'
 
-force_instance_split = False
-
-available_models = ['vgg16']
-train_models = ['vgg16']
-test_models = ['vgg16']
+force_instance_split = False # Randomly split the instances even if the datasets already exist.
+num_training_samples = 770   # The size of the class. If less available, oversampling through replication is used.
+min_testing_samples = 26     # The minimal number of instances kept for testing in each class.
 
 # Create the index of sorted photos: photo_index.json
 if os.path.exists(f'{dir_braid}photo_index.json'):
@@ -64,23 +62,34 @@ else:
     crop_photos.run(dir_braid)
 
 # Create training instances from cropped photos.
-if os.path.exists(f'{dir_braid}datax.npy') and os.path.exists(f'{dir_braid}datay.npy'):
-    print("Found datax.npy and datay.npy")
+if (
+    os.path.exists(f'{dir_braid}data_id.npy') and
+    os.path.exists(f'{dir_braid}data_x.npy') and
+    os.path.exists(f'{dir_braid}data_y.npy')
+):
+    print("Found data_id.npy, data_x.npy, data_y.npy")
 else:
     print("Creating training instances.")
     create_instances.run(dir_braid)
 
 # Prepare the training and the testing sets
-if not force_instance_split and os.path.exists(f'{dir_braid}training_x.npy') and os.path.exists(f'{dir_braid}training_y.npy') and os.path.exists(f'{dir_braid}testing_x.npy') and os.path.exists(f'{dir_braid}testing_y.npy'):
-    print("Found training_x.npy, training_y.npy, testing_x.npy, testing_y.npy")
+if (
+    not force_instance_split and
+    os.path.exists(f'{dir_braid}training_id.npy') and
+    os.path.exists(f'{dir_braid}training_x.npy') and
+    os.path.exists(f'{dir_braid}training_y.npy') and
+    os.path.exists(f'{dir_braid}testing_id.npy') and
+    os.path.exists(f'{dir_braid}testing_x.npy') and
+    os.path.exists(f'{dir_braid}testing_y.npy')
+):
+    print("Found training_id.npy, training_x.npy, training_y.npy, testing_id.npy, testing_x.npy, testing_y.npy")
 else:
     print("Splitting the instances into training and testing sets.")
-    split_instances.run(dir_braid)
+    split_instances.run(dir_braid, num_training_samples, min_testing_samples)
 
 # Check the split instances.
 print('Checking training and testing instances.')
 check_instances.run(dir_braid)
-quit()
 
 # Create the directories to store models and results.
 if not os.path.exists(f'{dir_braid}models/'):
