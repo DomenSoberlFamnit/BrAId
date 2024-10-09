@@ -10,6 +10,8 @@ def run(dir_braid, num_training_samples, min_testing_samples):
     print("Loading data_y.npy")
     data_y = np.load(f'{dir_braid}data_y.npy')
 
+    print("Splitting the instances.")
+
     # Separate indices according to classes.
     distribution = []
     for _ in range(len(data_y[0])):
