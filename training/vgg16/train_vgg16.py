@@ -85,9 +85,6 @@ def main():
     group_index = json.load(file)
     file.close()
 
-    print("Loading training_id.npy")
-    training_id = np.load(f'{dir_braid}training_id.npy')
-
     print("Loading training_x.npy")
     training_x = np.load(f'{dir_braid}training_x.npy')
 

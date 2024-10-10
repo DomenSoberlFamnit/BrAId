@@ -93,7 +93,7 @@ def run(dir_braid):
     cnt_changed_ok = 0
     cnt_groups_chg = 0
 
-    src_photos_dir = dir_braid + 'yolo_photos/'
+    src_photos_dir = dir_braid + 'photos/'
     dst_photos_dir = dir_braid + 'cropped_photos/'
 
     if not os.path.exists(dst_photos_dir):

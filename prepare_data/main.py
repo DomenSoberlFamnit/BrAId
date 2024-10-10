@@ -11,7 +11,7 @@ dir_siwim = '/home/hicup/braid/siwim/'
 dir_braid = '/home/hicup/disk/braid/'
 
 force_instance_split = True  # Randomly split the instances even if the datasets already exist.
-num_training_samples = 5000  # The size of the class. If less available, oversampling through replication is used.
+num_training_samples = 1000  # The size of the class. If less available, oversampling through replication is used.
 min_testing_samples = 26     # The minimum number of instances kept for testing in each class.
 max_testing_samples = 20000  # The maximum number of instances kept for testing in each class.
 
