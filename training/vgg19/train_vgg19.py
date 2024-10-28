@@ -1,15 +1,15 @@
 import os
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.applications import VGG16
+from tensorflow.keras.applications import VGG19
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Flatten, Dropout
 from tensorflow.keras.optimizers import Adam
 import json
 
 dir_braid = '/home/hicup/disk/braid/'
-dir_model = f'{dir_braid}models/vgg16/'
-dir_results = f'{dir_braid}results/vgg16/'
+dir_model = f'{dir_braid}models/vgg19/'
+dir_results = f'{dir_braid}results/vgg19/'
 
 def slot_indices(gpu_capacity, set_size):
     indices = []
@@ -41,8 +41,8 @@ def test(model, test_x, test_y, gpu_capacity=5000):
     return correct/len(test_x)
 
 def build_model(cls_count):
-    # Load the VGG16 model pre-trained on ImageNet without the top classification layer
-    model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    # Load the VGG19 model pre-trained on ImageNet without the top classification layer
+    model = VGG19(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 
     # Freeze the base model
     # model.trainable = False
@@ -67,7 +67,7 @@ def build_model(cls_count):
     return model
 
 def main():
-    print("Preparing to train the VGG16 model.")
+    print("Preparing to train the VGG19 model.")
 
     # Create folders
     if not os.path.exists(dir_model):
@@ -76,8 +76,8 @@ def main():
         os.mkdir(dir_results)
 
     # Delete existing results
-    if os.path.exists(f'{dir_results}vgg16_ca.txt'):
-        os.remove(f'{dir_results}vgg16_ca.txt')
+    if os.path.exists(f'{dir_results}vgg19_ca.txt'):
+        os.remove(f'{dir_results}vgg19_ca.txt')
 
     # Load the data
     print("Loading group_index.json")
@@ -103,7 +103,7 @@ def main():
     # Build the network architecture
     model = build_model(len(group_index))
 
-    for epoch in range(100):
+    for epoch in range(25):
         print(f'Epoch {epoch} training.')
         train_loss, train_accuracy = train(model, training_x, training_y)
         print(f'Epoch {epoch} testing on training set.')
@@ -111,11 +111,11 @@ def main():
         print(f'Epoch {epoch} testing on testing set.')
         test_accuracy = test(model, testing_x, testing_y)
 
-        f = open(f'{dir_results}vgg16_ca.txt', 'a')
+        f = open(f'{dir_results}vgg19_ca.txt', 'a')
         f.write(f'{epoch + 1}, {train_loss}, {train_accuracy}, {train_accuracy_manual}, {test_accuracy}\n')
         f.close()
 
-    model.save(f'{dir_model}vgg16.keras')
+    model.save(f'{dir_model}vgg19.keras')
 
 if __name__ == "__main__":
     main()

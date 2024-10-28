@@ -5,11 +5,11 @@ import json
 from PIL import Image
 
 dir_braid = '/home/hicup/disk/braid/'
-dir_model = f'{dir_braid}models/vgg16/'
-dir_results = f'{dir_braid}results/vgg16/'
-dir_photos = f'{dir_braid}results/vgg16/photos/'
-dir_photos_hit = f'{dir_braid}results/vgg16/photos/hit/'
-dir_photos_miss = f'{dir_braid}results/vgg16/photos/miss/'
+dir_model = f'{dir_braid}models/vgg16empty/'
+dir_results = f'{dir_braid}results/vgg16empty/'
+dir_photos = f'{dir_braid}results/vgg16empty/photos/'
+dir_photos_hit = f'{dir_braid}results/vgg16empty/photos/hit/'
+dir_photos_miss = f'{dir_braid}results/vgg16empty/photos/miss/'
 
 def obscure_image(x):
     for row in range(224):
@@ -47,7 +47,7 @@ def main():
     data_y = np.load(f'{dir_braid}data_y.npy')
 
     print("Loading the model.")
-    model = tf.keras.models.load_model(f'{dir_model}vgg16.keras')
+    model = tf.keras.models.load_model(f'{dir_model}vgg16empty.keras')
     print(model.summary())
 
     cnt, hit = 0, 0
