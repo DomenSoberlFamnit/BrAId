@@ -62,11 +62,11 @@ def main():
         if predicted_group == true_group:
             hit += 1
 
-            #if not os.path.exists(f'{dir_photos_hit}{groups[true_group]}/'):
-            #    os.mkdir(f'{dir_photos_hit}{groups[true_group]}/')
+            if not os.path.exists(f'{dir_photos_hit}{groups[true_group]}/'):
+                os.mkdir(f'{dir_photos_hit}{groups[true_group]}/')
 
-            #img = tf.keras.preprocessing.image.array_to_img(x)
-            #img.save(f'{dir_photos_hit}{groups[true_group]}/{id}_{groups[true_group]}_{groups[predicted_group]}.png')
+            img = tf.keras.preprocessing.image.array_to_img(x)
+            img.save(f'{dir_photos_hit}{groups[true_group]}/{id}_{groups[true_group]}_{groups[predicted_group]}.png')
         else:
             if not os.path.exists(f'{dir_photos_miss}{groups[true_group]}/'):
                 os.mkdir(f'{dir_photos_miss}{groups[true_group]}/')
