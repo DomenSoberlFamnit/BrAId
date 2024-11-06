@@ -1,6 +1,7 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
+import sys
 from timeit import default_timer as timer
 import numpy as np
 import tensorflow as tf
@@ -14,15 +15,16 @@ dir_braid = '/home/hicup/disk/braid/'
 dir_models = f'{dir_braid}models/'
 dir_results = f'{dir_braid}results/'
 
-architectures = [
-    ('VGG16', VGG16),
-    ('VGG19', VGG19),
-    ('DenseNet121', DenseNet121),
-    ('MobileNetV3Small', MobileNetV3Small),
-    ('ResNet101V2', ResNet101V2)
-]
+architectures = {
+    'VGG16': VGG16,
+    'VGG19': VGG19,
+    'DenseNet121': DenseNet121,
+    'MobileNetV3Small': MobileNetV3Small,
+    'ResNet101V2': ResNet101V2
+}
 
 epochs = 25
+sample_count = 0
 
 def build_model(architecture, class_count):
     model = architecture(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
@@ -48,25 +50,6 @@ def slot_indices(gpu_capacity, set_size):
         idx_from = idx_to
     return indices
 
-def train(model, train_x, train_y, gpu_capacity=5000):
-    loss = 0
-    ca = 0
-
-    time_ms = 0
-    cnt = 0
-    for (idx_from, idx_to, ratio) in slot_indices(gpu_capacity, len(train_x)):
-        time_start = timer()
-        history = model.fit(x=train_x[idx_from:idx_to], y=train_y[idx_from:idx_to], batch_size=32, epochs=1, validation_split=0, shuffle=False)
-        time_end = timer()
-
-        time_ms += 1000 * (time_end - time_start) / (idx_to - idx_from)
-        
-        loss += ratio * history.history['loss'][0]
-        ca += ratio * history.history['accuracy'][0]
-        cnt += 1
-    
-    return loss, ca, time_ms / cnt
-
 def test(model, test_x, test_y, gpu_capacity=5000):
     correct = 0
 
@@ -78,26 +61,37 @@ def test(model, test_x, test_y, gpu_capacity=5000):
     
     return correct / len(test_x)
 
+def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capacity=5000):
+    global sample_count
+
+    for (idx_from, idx_to, _) in slot_indices(gpu_capacity, len(train_x)):
+        time_start = timer()
+        history = model.fit(x=train_x[idx_from:idx_to], y=train_y[idx_from:idx_to], batch_size=32, epochs=1, validation_split=0, shuffle=False)
+        time_end = timer()
+        
+        time_ms = 1000 * (time_end - time_start) / (idx_to - idx_from)
+        sample_count += idx_to - idx_from
+        
+        loss = history.history['loss'][0]
+        train_accuracy = history.history['accuracy'][0]
+
+        test_accuracy = test(model, testing_x, testing_y)
+
+        fname = f'{dir_results}{name}/training.txt'
+        f = open(fname, 'a')
+        f.write(f'{epoch + 1}, {sample_count}, {loss}, {train_accuracy}, {test_accuracy}, {time_ms}\n')
+        f.close()
+
 def process_model(name, architecture, group_index, training_x, training_y, testing_x, testing_y):
+    global sample_count
+
     print(f'Building model {name}.')
     model = build_model(architecture, len(group_index))
 
-    time_sum = 0
+    sample_count = 0
     for epoch in range(epochs):
         print(f'Training epoch {epoch + 1}/{epochs}.')
-        train_loss, train_accuracy, time_ms = train(model, training_x, training_y)
-
-        time_sum += time_ms
-        
-        print(f'Testing {name}.')
-        test_accuracy = test(model, testing_x, testing_y)   
-        
-        fname = f'{dir_results}{name}/training.txt'
-        f = open(fname, 'a')
-        f.write(f'{epoch + 1}, loss = {train_loss}, TA = {train_accuracy}, CA = {test_accuracy}, T = {time_ms}\n')
-        f.close()
-    
-    print(f'Average training time per sample was {time_sum / epochs}.')
+        train(model, name, epoch, training_x, training_y, testing_x, testing_y)
 
     print(f'Saving the model {name}.')
     model.save(f'{dir_models}{name}.keras')
@@ -105,22 +99,37 @@ def process_model(name, architecture, group_index, training_x, training_y, testi
     tf.keras.backend.clear_session()
 
 def main():
-    print("Preparing to train the models.")
-
     # Create folders
     if not os.path.exists(dir_models):
         os.mkdir(dir_models)
     if not os.path.exists(dir_results):
         os.mkdir(dir_results)
 
+    # Get the architecture name
+    architecture = None
+    if len(sys.argv) == 2:
+        name = sys.argv[1]
+        if name in architectures.keys():
+            architecture = architectures[name]
+    
+    if architecture == None:
+        quit()
+
+    print(f'Preparing to train {name}.')
+
     # Delete existing results
-    for (name, _) in architectures:
-        fname = f'{dir_results}{name}'
-        if not os.path.exists(fname):
-            os.mkdir(fname)
-        fname = f'{dir_results}{name}/training.txt'
-        if os.path.exists(fname):
-            os.remove(fname)
+    fname = f'{dir_results}{name}'
+    if not os.path.exists(fname):
+        os.mkdir(fname)
+    fname = f'{dir_results}{name}/training.txt'
+    if os.path.exists(fname):
+        os.remove(fname)
+
+    # Create the new results file.
+    fname = f'{dir_results}{name}/training.txt'
+    f = open(fname, 'a')
+    f.write('epoch, samples, loss, train accuracy, test accuracy, time ms\n')
+    f.close()
 
     # Load the data
     print("Loading group_index.json")
@@ -143,8 +152,7 @@ def main():
     print("Loading testing_y.npy")
     testing_y = np.load(f'{dir_braid}testing_y.npy')
 
-    for (name, architecture) in architectures:
-        process_model(name, architecture, group_index, training_x, training_y, testing_x, testing_y)
+    process_model(name, architecture, group_index, training_x, training_y, testing_x, testing_y)
 
 
 if __name__ == "__main__":
