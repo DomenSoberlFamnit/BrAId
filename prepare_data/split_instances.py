@@ -1,6 +1,6 @@
 import numpy as np
 
-def run(dir_braid, num_training_samples, min_testing_samples):
+def run(dir_braid, num_training_samples, min_testing_samples, max_testing_samples):
     print("Loading data_id.npy")
     data_id = np.load(f'{dir_braid}data_id.npy')
     
@@ -36,7 +36,10 @@ def run(dir_braid, num_training_samples, min_testing_samples):
     for samples in distribution:
         if samples.size >= num_training_samples + min_testing_samples:
             training_indices = np.concatenate((training_indices, samples[0:num_training_samples]))
-            testing_indices = np.concatenate((testing_indices, samples[num_training_samples:]))
+            if samples.size <= num_training_samples + max_testing_samples:
+                testing_indices = np.concatenate((testing_indices, samples[num_training_samples:]))
+            else:
+                testing_indices = np.concatenate((testing_indices, samples[num_training_samples:(num_training_samples + max_testing_samples)]))
         else:
             # Oversample
             split_idx = samples.size - min_testing_samples

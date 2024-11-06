@@ -13,7 +13,7 @@ dir_braid = '/home/hicup/disk/braid/'
 force_instance_split = True  # Randomly split the instances even if the datasets already exist.
 num_training_samples = 5000  # The size of the class. If less available, oversampling through replication is used.
 min_testing_samples = 26     # The minimum number of instances kept for testing in each class.
-max_testing_samples = 20000  # The maximum number of instances kept for testing in each class.
+max_testing_samples = 26     # The maximum number of instances kept for testing in each class.
 
 # Create the index of sorted photos: photo_index.json
 if os.path.exists(f'{dir_braid}photo_index.json'):
@@ -86,7 +86,7 @@ if (
     print("Found training_id.npy, training_x.npy, training_y.npy, testing_id.npy, testing_x.npy, testing_y.npy")
 else:
     print("Splitting the instances into training and testing sets.")
-    split_instances.run(dir_braid, num_training_samples, min_testing_samples)
+    split_instances.run(dir_braid, num_training_samples, min_testing_samples, max_testing_samples)
 
 # Check the split instances.
 print('Checking training and testing instances.')

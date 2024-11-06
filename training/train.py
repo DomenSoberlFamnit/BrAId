@@ -1,6 +1,7 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
+from timeit import default_timer as timer
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications import VGG16, VGG19, DenseNet121, MobileNetV3Small, ResNet101V2
@@ -14,10 +15,10 @@ dir_models = f'{dir_braid}models/'
 dir_results = f'{dir_braid}results/'
 
 architectures = [
-    #('VGG16', VGG16),
-    #('VGG19', VGG19),
-    #('DenseNet121', DenseNet121),
-    #('MobileNetV3Small', MobileNetV3Small),
+    ('VGG16', VGG16),
+    ('VGG19', VGG19),
+    ('DenseNet121', DenseNet121),
+    ('MobileNetV3Small', MobileNetV3Small),
     ('ResNet101V2', ResNet101V2)
 ]
 
@@ -51,12 +52,20 @@ def train(model, train_x, train_y, gpu_capacity=5000):
     loss = 0
     ca = 0
 
+    time_ms = 0
+    cnt = 0
     for (idx_from, idx_to, ratio) in slot_indices(gpu_capacity, len(train_x)):
+        time_start = timer()
         history = model.fit(x=train_x[idx_from:idx_to], y=train_y[idx_from:idx_to], batch_size=32, epochs=1, validation_split=0, shuffle=False)
+        time_end = timer()
+
+        time_ms += 1000 * (time_end - time_start) / (idx_to - idx_from)
+        
         loss += ratio * history.history['loss'][0]
         ca += ratio * history.history['accuracy'][0]
+        cnt += 1
     
-    return loss, ca
+    return loss, ca, time_ms / cnt
 
 def test(model, test_x, test_y, gpu_capacity=5000):
     correct = 0
@@ -73,18 +82,23 @@ def process_model(name, architecture, group_index, training_x, training_y, testi
     print(f'Building model {name}.')
     model = build_model(architecture, len(group_index))
 
+    time_sum = 0
     for epoch in range(epochs):
         print(f'Training epoch {epoch + 1}/{epochs}.')
-        train_loss, train_accuracy = train(model, training_x, training_y)
+        train_loss, train_accuracy, time_ms = train(model, training_x, training_y)
+
+        time_sum += time_ms
         
         print(f'Testing {name}.')
-        test_accuracy = test(model, testing_x, testing_y)    
+        test_accuracy = test(model, testing_x, testing_y)   
         
         fname = f'{dir_results}{name}/training.txt'
         f = open(fname, 'a')
-        f.write(f'{epoch + 1}, {train_loss}, {train_accuracy}, {test_accuracy}\n')
+        f.write(f'{epoch + 1}, loss = {train_loss}, TA = {train_accuracy}, CA = {test_accuracy}, T = {time_ms}\n')
         f.close()
     
+    print(f'Average training time per sample was {time_sum / epochs}.')
+
     print(f'Saving the model {name}.')
     model.save(f'{dir_models}{name}.keras')
 
