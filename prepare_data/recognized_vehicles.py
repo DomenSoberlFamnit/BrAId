@@ -7,7 +7,7 @@ import os
 def is_duplicate(segment1, segment2):
     box1 = segment1['box']
     box2 = segment2['box']
-    
+
     x1 = box1['x']
     y1 = box1['y']
     width1 = box1['width']
@@ -57,7 +57,7 @@ def run(dir_braid):
         os.mkdir(dst_photos_dir)
 
     valid_timestamps = []
-    with open('valid_timestamps.txt', 'r') as file:
+    with open('../metadata/valid_timestamps.txt', 'r') as file:
         for timestamp in file.read().strip().split(','):
             valid_timestamps.append(float(timestamp))
 
@@ -129,7 +129,7 @@ def run(dir_braid):
                 draw.rectangle([(x, y), (x + w, y + h)], outline=color_names[i], width=2)
                 box['color'] = color_codes[i]
                 segment['box'] = box
-            
+
             img.save(dir + str(vehicle['id']) + '.png')
 
             data.append({'photo_id':vehicle['id'], 'photo_timestamp':vehicle['ts_photo'], 'vehicle_timestamp':vehicle['ts_vehicle'], 'axle_count':vehicle['axles'], 'axle_groups':vehicle['groups'], 'gvw':vehicle['gvw'],'segments':segments})

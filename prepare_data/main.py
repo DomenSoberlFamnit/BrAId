@@ -37,7 +37,7 @@ else:
 if os.path.exists(f'{dir_braid}recognized_vehicles.json'):
     print("Found recognized_vehicles.json.")
 else:
-    if not os.path.exists(f'valid_timestamps.txt'):
+    if not os.path.exists(f'../metadata/valid_timestamps.txt'):
         print("File valid_timestamps.txt not found!")
         quit()
 
@@ -55,7 +55,7 @@ else:
 if os.path.exists(f'{dir_braid}cropped_photos'):
     print("Found the cropped_photos folder.")
 else:
-    if not os.path.exists(f'metadata.hdf5'):
+    if not os.path.exists(f'../metadata/metadata.hdf5'):
         print("File metadata.hdf5 not found!")
         quit()
 
