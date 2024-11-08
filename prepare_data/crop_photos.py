@@ -1,15 +1,6 @@
 import os
 import json
-import h5py
 from PIL import Image
-
-cnt_all = 0
-cnt_seen = 0
-cnt_unchanged = 0
-cnt_changed_ok = 0
-cnt_groups_chg = 0
-
-error_flags = ['yolo_error', 'photo_truncated', 'vehicle_joined', 'vehicle_split', 'cannot_label', 'inconsistent_data', 'off_lane', 'wrong_lane', 'multiple_vehicles', 'fixed']
 
 def find_vehicle(rv, id):
     for data in rv:
@@ -41,30 +32,6 @@ def img_resize_224(img):
 
     return out
 
-#def prop_has_errors(prop):
-#    if 'errors' not in prop:
-#        return False
-#
-#    errors = prop['errors']
-#
-#    for key in errors:
-#        if errors[key] != 0:
-#            return True
-#
-#    return False
-
-def prop_has_errors(prop):
-    if 'errors' not in prop:
-        return False
-    
-    errors = prop['errors']
-
-    for flag in error_flags:
-        if flag in errors and errors[flag] != 0:
-            return True
-
-    return False
-
 def get_photo(src_photos_dir, rv_record, id, seg):
     subdir = str(int(int(id)/1000)) + '/'
     try:
@@ -77,69 +44,37 @@ def get_photo(src_photos_dir, rv_record, id, seg):
 
     return img_resize_224(cropped)
 
-def check_photo(file, rv_record, dir, id):
-    global cnt_all, cnt_seen, cnt_unchanged, cnt_changed_ok
-
-    prop = json.loads(file[f'{dir}/{id}'].asstr()[()])
-
-    seg = prop['segment'] if 'segment' in prop else 'r'
-    true_groups = prop['axle_groups'] if 'axle_groups' in prop else rv_record['axle_groups']
-
-    cnt_all += 1
-    if prop['seen_by'] != None:
-        cnt_seen += 1
-        if prop['changed_by'] == None:
-            cnt_unchanged += 1
-            return True, true_groups, seg
-        else:
-            if not prop_has_errors(prop):
-                cnt_changed_ok += 1
-                return True, true_groups, seg
-
-    return False, true_groups, seg
-
 def run(dir_braid):
-    global cnt_all, cnt_seen, cnt_unchanged, cnt_changed_ok, cnt_groups_chg
-
-    cnt_all = 0
-    cnt_seen = 0
-    cnt_unchanged = 0
-    cnt_changed_ok = 0
-    cnt_groups_chg = 0
-
     src_photos_dir = dir_braid + 'photos/'
     dst_photos_dir = dir_braid + 'cropped_photos/'
 
     if not os.path.exists(dst_photos_dir):
         os.mkdir(dst_photos_dir)
 
-    f = open(dir_braid + 'recognized_vehicles.json')
+    f = open(f'{dir_braid}recognized_vehicles.json')
     rv = json.load(f)
     f.close()
 
-    with h5py.File('../metadata/metadata.hdf5', 'r') as file:
-        for dir in file.keys():
-            data = file[dir]
-            for id in data:
-                rv_record = find_vehicle(rv, id)
-                if rv_record == None:
-                    continue
+    f = open(f'{dir_braid}valid_photos.json')
+    valid_photos = json.load(f)
+    f.close()
 
-                photo_ok, true_groups, seg = check_photo(file, rv_record, dir, id)
-                if photo_ok:
-                    if true_groups != dir:
-                        cnt_groups_chg += 1
+    i = 0
+    n = len(valid_photos)
 
-                    img = get_photo(src_photos_dir, rv_record, id, seg)
-                    if img != None:
-                        if not os.path.exists(dst_photos_dir + f'{true_groups}/'):
-                            os.mkdir(dst_photos_dir + f'{true_groups}/')
-                        img.save(dst_photos_dir + f'{true_groups}/{id}.png')
-                        print(f'Cropping photo {cnt_all}/{len(rv)} with ID {id} of groups {dir} -> {true_groups}')
+    for record in valid_photos:
+        photo_id = record['photo_id']
+        segment = record['segment']
+        groups = record['class']
 
-    print("All YOLO photos:", len(rv))
-    print("Considered photos:", cnt_all)
-    print("Photos seen by someone:", cnt_seen)
-    print("Photos not changed:", cnt_unchanged)
-    print("Photos changed but used:", cnt_changed_ok)
-    print("Photos where groups are changed:", cnt_groups_chg)
+        i += 1
+        rv_record = find_vehicle(rv, photo_id)
+
+        img = get_photo(src_photos_dir, rv_record, photo_id, segment)
+        if img != None:
+            if not os.path.exists(f'{dst_photos_dir}{groups}/'):
+                os.mkdir(f'{dst_photos_dir}{groups}/')
+            img.save(f'{dst_photos_dir}{groups}/{photo_id}.png')
+            
+            if i % 1000 == 0:
+                print(f'Cropped {i}/{n} photos.')

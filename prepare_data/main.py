@@ -2,6 +2,7 @@ import os
 import photo_index
 import vehicle_index
 import recognized_vehicles
+import valid_photos
 import crop_photos
 import create_instances
 import split_instances
@@ -44,21 +45,29 @@ else:
     print("Creating recognized_vehicles.json.")
     recognized_vehicles.run(dir_braid)
 
-# Crop the photos created by YOLO. Only the photos that will be used
-# for machine learning are cropped. The criteria which photos to use
-# is hardcoded in the crop_photos script and based on the metadata
-# metadata.hdf5, which is provided by ZAG.
-#
+# Filter the valid images. This creates the valid_images.json file.
+# The criteria which photos to use is hardcoded in the script and
+# based on the metadata metadata.hdf5, which is provided by ZAG.
 # NOTE: At this point it is decided which photos will be used
 #       for machine learning.
 #
-if os.path.exists(f'{dir_braid}cropped_photos'):
-    print("Found the cropped_photos folder.")
+if os.path.exists(f'{dir_braid}valid_photos.json'):
+    print("Found the valid_photos.json file.")
 else:
     if not os.path.exists(f'../metadata/metadata.hdf5'):
         print("File metadata.hdf5 not found!")
         quit()
 
+    print("Filtering photos.")
+    valid_photos.run(dir_braid)
+
+# Crop the photos created by YOLO and recognized as valid by
+# the previous script. The valid photos are written in the
+# valid_photos.json file. Recognized vehicles is used to
+# get the crop segments.
+if os.path.exists(f'{dir_braid}cropped_photos'):
+    print("Found the cropped_photos folder.")
+else:
     print("Cropping photos.")
     crop_photos.run(dir_braid)
 
