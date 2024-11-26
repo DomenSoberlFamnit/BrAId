@@ -4,12 +4,14 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import sys
 from timeit import default_timer as timer
 import numpy as np
+from PIL import Image, ImageDraw
 import tensorflow as tf
 from tensorflow.keras.applications import VGG16, VGG19, DenseNet121, MobileNetV3Small, ResNet101V2
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Flatten, Dropout
 from tensorflow.keras.optimizers import Adam
 import json
+import random
 
 dir_braid = '/home/hicup/disk/braid/'
 dir_models = f'{dir_braid}models/'
@@ -23,8 +25,32 @@ architectures = {
     'ResNet101V2': ResNet101V2
 }
 
-epochs = 25
+epochs = 10
 sample_count = 0
+
+def alter_image(img):
+    width, height = img.size
+    new_width = round(random.uniform(0.9, 1.0) * width)
+    new_height = round(random.uniform(0.9, 1.0) * height)
+    img = img.resize((new_width, new_height))
+    
+    space_x = width - new_width
+    space_y = height - new_height
+    offset_x = round(random.uniform(0.0, space_x))
+    offset_y = round(random.uniform(0.0, space_y))
+
+    new_img = Image.new(mode="RGB", size=(width, height), color="black")
+    new_img.paste(img, (offset_x, offset_y))
+    return new_img
+
+def alter_batch(batch):
+    new_batch = []
+    for sample in batch:
+        img = tf.keras.preprocessing.image.array_to_img(sample)
+        img = alter_image(img)
+        new_sample = tf.keras.preprocessing.image.img_to_array(img)
+        new_batch.append(new_sample)
+    return np.array(new_batch)
 
 def build_model(architecture, class_count):
     model = architecture(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
@@ -50,7 +76,7 @@ def slot_indices(gpu_capacity, set_size):
         idx_from = idx_to
     return indices
 
-def test(model, test_x, test_y, gpu_capacity=5000):
+def test(model, test_x, test_y, gpu_capacity=10000):
     correct = 0
 
     for (idx_from, idx_to, _) in slot_indices(gpu_capacity, len(test_x)):
@@ -61,12 +87,13 @@ def test(model, test_x, test_y, gpu_capacity=5000):
     
     return correct / len(test_x)
 
-def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capacity=5000):
+def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capacity=10000):
     global sample_count
 
     for (idx_from, idx_to, _) in slot_indices(gpu_capacity, len(train_x)):
+        batch_x = alter_batch(train_x[idx_from:idx_to])
         time_start = timer()
-        history = model.fit(x=train_x[idx_from:idx_to], y=train_y[idx_from:idx_to], batch_size=32, epochs=1, validation_split=0, shuffle=False)
+        history = model.fit(x=batch_x, y=train_y[idx_from:idx_to], batch_size=32, epochs=1, validation_split=0, shuffle=False)
         time_end = timer()
         
         time_ms = 1000 * (time_end - time_start) / (idx_to - idx_from)

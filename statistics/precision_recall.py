@@ -10,6 +10,8 @@ photos_subfolder = 'photos_test'
 
 def process_folder(path, name):
     matrices = {}
+    correct = 0
+    incorrect = 0
 
     cnt = 0
     for _, _, files in os.walk(path):
@@ -26,8 +28,10 @@ def process_folder(path, name):
                     matrices[predicted] = {'TP': 0, 'FP': 0, 'FN': 0}
                 
                 if truth == predicted:
+                    correct += 1
                     matrices[truth]['TP'] += 1
                 else:
+                    incorrect += 1
                     matrices[predicted]['FP'] += 1
                     matrices[truth]['FN'] += 1
 
@@ -74,7 +78,7 @@ def process_folder(path, name):
     plot_data.plot(kind='bar', figsize=(20,4))
     plt.savefig(f'{dir_results}{name}/precision-recall.png')
 
-    return sum_precision/len(matrices), sum_recall/len(matrices), sum_f/len(matrices), matrix
+    return 100*correct/(correct+incorrect), sum_precision/len(matrices), sum_recall/len(matrices), sum_f/len(matrices), matrix
 
 def main():
     fname =f'{dir_results}precision-recall.txt'
@@ -87,9 +91,9 @@ def main():
 
     for dir in os.listdir(dir_results):
         if os.path.isdir(f'{dir_results}{dir}') and os.path.exists(f'{dir_results}{dir}/{photos_subfolder}/'):
-            precision, recall, f, matrix = process_folder(f'{dir_results}{dir}/{photos_subfolder}/', dir)
-            results[dir] = {'matrix': matrix, 'precision': precision, 'recall': recall, 'F1': f}
-            print(dir, precision, recall, f)
+            ca, precision, recall, f, matrix = process_folder(f'{dir_results}{dir}/{photos_subfolder}/', dir)
+            results[dir] = {'matrix': matrix, 'CA':ca, 'precision': precision, 'recall': recall, 'F1': f}
+            print(dir, ca, precision, recall, f)
 
     with open(fname, "w") as outfile: 
         json.dump(results, outfile)

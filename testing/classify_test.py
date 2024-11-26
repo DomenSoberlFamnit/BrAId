@@ -12,11 +12,11 @@ dir_models = f'{dir_braid}models/'
 dir_results = f'{dir_braid}results/'
 
 architectures = [
-    'VGG16',
-    'VGG19',
+    #'VGG16',
+    #'VGG19',
     'DenseNet121',
-    'MobileNetV3Small',
-    'ResNet101V2'
+    #'MobileNetV3Small',
+    #'ResNet101V2'
 ]
 
 def process_model(name, groups, data_id, data_x, data_y):
