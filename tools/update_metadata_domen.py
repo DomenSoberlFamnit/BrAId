@@ -11,8 +11,8 @@ with open('../metadata/corrections.csv', newline='\n') as csvfile:
 cnt_changed = 0
 cnt_eliminated = 0
 
-with h5py.File('../metadata/new_metadata.hdf5', 'w') as new_meta:
-    with h5py.File('../metadata/metadata.hdf5', 'r') as meta:
+with h5py.File('../metadata/metadata-corrections-domen.hdf5', 'w') as new_meta:
+    with h5py.File('../metadata/metadata-original.hdf5', 'r') as meta:
         for groups in meta.keys():
             data = meta[groups]
             new_data = new_meta.create_group(groups)

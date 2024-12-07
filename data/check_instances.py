@@ -8,16 +8,16 @@ def run(dir_braid):
     file.close()
 
     print("Loading training_id.npy")
-    training_id = np.load(f'{dir_braid}training_id.npy')
+    training_id = np.load(f'{dir_braid}data/training_id.npy')
 
     print("Loading testing_id.npy")
-    testing_id = np.load(f'{dir_braid}testing_id.npy')
+    testing_id = np.load(f'{dir_braid}data/testing_id.npy')
 
     print("Loading training_y.npy")
-    training_y = np.load(f'{dir_braid}training_y.npy')
+    training_y = np.load(f'{dir_braid}data/training_y.npy')
 
     print("Loading testing_y.npy")
-    testing_y = np.load(f'{dir_braid}testing_y.npy')
+    testing_y = np.load(f'{dir_braid}data/testing_y.npy')
 
     group_index = dict(sorted(group_index.items(), key=lambda item: item[1], reverse=False))
     groups = list(group_index.keys())

@@ -9,7 +9,7 @@ dir_braid = '/home/hicup/disk/braid/'
 dir_photos = f'{dir_braid}photos/'
 dir_models = f'{dir_braid}models/'
 
-model_name = 'DenseNet121'
+model_name = 'VGG16'
 
 def is_duplicate(segment1, segment2):
     box1 = segment1['box']

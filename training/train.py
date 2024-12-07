@@ -165,19 +165,19 @@ def main():
     file.close()
 
     print("Loading training_x.npy")
-    training_x = np.load(f'{dir_braid}training_x.npy')
+    training_x = np.load(f'{dir_braid}data/training_x.npy')
 
     print("Loading training_y.npy")
-    training_y = np.load(f'{dir_braid}training_y.npy')
+    training_y = np.load(f'{dir_braid}data/training_y.npy')
 
     print("Loading testing_id.npy")
-    testing_id = np.load(f'{dir_braid}testing_id.npy')
+    testing_id = np.load(f'{dir_braid}data/testing_id.npy')
 
     print("Loading testing_x.npy")
-    testing_x = np.load(f'{dir_braid}testing_x.npy')
+    testing_x = np.load(f'{dir_braid}data/testing_x.npy')
 
     print("Loading testing_y.npy")
-    testing_y = np.load(f'{dir_braid}testing_y.npy')
+    testing_y = np.load(f'{dir_braid}data/testing_y.npy')
 
     process_model(name, architecture, group_index, training_x, training_y, testing_x, testing_y)
 

@@ -8,7 +8,7 @@ import create_instances
 import split_instances
 import check_instances
 
-dir_siwim = '/home/hicup/braid/siwim/'
+dir_siwim = '/home/hicup/disk/siwim/'
 dir_braid = '/home/hicup/disk/braid/'
 
 force_instance_split = True  # Randomly split the instances even if the datasets already exist.
@@ -73,9 +73,9 @@ else:
 
 # Create training instances from cropped photos.
 if (
-    os.path.exists(f'{dir_braid}data_id.npy') and
-    os.path.exists(f'{dir_braid}data_x.npy') and
-    os.path.exists(f'{dir_braid}data_y.npy')
+    os.path.exists(f'{dir_braid}data/data_id.npy') and
+    os.path.exists(f'{dir_braid}data/data_x.npy') and
+    os.path.exists(f'{dir_braid}data/data_y.npy')
 ):
     print("Found data_id.npy, data_x.npy, data_y.npy")
 else:
@@ -85,12 +85,12 @@ else:
 # Prepare the training and the testing sets
 if (
     not force_instance_split and
-    os.path.exists(f'{dir_braid}training_id.npy') and
-    os.path.exists(f'{dir_braid}training_x.npy') and
-    os.path.exists(f'{dir_braid}training_y.npy') and
-    os.path.exists(f'{dir_braid}testing_id.npy') and
-    os.path.exists(f'{dir_braid}testing_x.npy') and
-    os.path.exists(f'{dir_braid}testing_y.npy')
+    os.path.exists(f'{dir_braid}data/training_id.npy') and
+    os.path.exists(f'{dir_braid}data/training_x.npy') and
+    os.path.exists(f'{dir_braid}data/training_y.npy') and
+    os.path.exists(f'{dir_braid}data/testing_id.npy') and
+    os.path.exists(f'{dir_braid}data/testing_x.npy') and
+    os.path.exists(f'{dir_braid}data/testing_y.npy')
 ):
     print("Found training_id.npy, training_x.npy, training_y.npy, testing_id.npy, testing_x.npy, testing_y.npy")
 else:

@@ -12,11 +12,11 @@ dir_models = f'{dir_braid}models/'
 dir_results = f'{dir_braid}results/'
 
 architectures = [
-    #'VGG16',
-    #'VGG19',
-    'DenseNet121',
-    #'MobileNetV3Small',
-    #'ResNet101V2'
+    'VGG16',
+    'VGG19',
+    #'DenseNet121',
+    'MobileNetV3Small',
+    'ResNet101V2'
 ]
 
 def process_model(name, groups, data_id, data_x, data_y):
@@ -88,13 +88,13 @@ def main():
     groups = list(group_index.keys())
 
     print("Loading testing_id.npy")
-    testing_id = np.load(f'{dir_braid}testing_id.npy')
+    testing_id = np.load(f'{dir_braid}data/testing_id.npy')
 
     print("Loading testing_x.npy")
-    testing_x = np.load(f'{dir_braid}testing_x.npy')
+    testing_x = np.load(f'{dir_braid}data/testing_x.npy')
 
     print("Loading testing_y.npy")
-    testing_y = np.load(f'{dir_braid}testing_y.npy')
+    testing_y = np.load(f'{dir_braid}data/testing_y.npy')
 
     for name in architectures:
         process_model(name, groups, testing_id, testing_x, testing_y)

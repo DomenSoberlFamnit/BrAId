@@ -75,11 +75,14 @@ def run(dir_braid):
         if i % 1000 == 0 or i == total_cnt:
             print(f'Converted {i}/{total_cnt}')
 
+    if not os.path.exists(f'{dir_braid}data/'):
+        os.mkdir(f'{dir_braid}data/')
+
     print("Saving data_id.npy")
-    np.save(f'{dir_braid}data_id.npy', np.array(ids))
+    np.save(f'{dir_braid}data/data_id.npy', np.array(ids))
 
     print('Saving data_x.npy')
-    np.save(f'{dir_braid}data_x.npy', np.array(data_x))
+    np.save(f'{dir_braid}data/data_x.npy', np.array(data_x))
     
     print('Saving data_y.npy')
-    np.save(f'{dir_braid}data_y.npy', np.array(data_y))
+    np.save(f'{dir_braid}data/data_y.npy', np.array(data_y))
