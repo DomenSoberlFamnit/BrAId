@@ -27,7 +27,24 @@ def prop_has_errors(prop):
 
     return False
 
-def compute_confusion_matrix():
+def get_siwim_groups(filepath):
+    hdf = pd.read_hdf(filepath)
+    siwim_groups = {}
+    for index, row in hdf.iterrows():
+        id = row['id']
+        if id == 'nan':
+            continue
+        rp1 = row['rp01_grp']
+        rp2 = row['rp02_grp']
+        rp3 = row['rp03_grp']
+        rp2_fixed = row['rp02_fixed']
+        rp3_fixed = row['rp03_fixed']
+        siwim_groups[str(id)] = {'rp1': (rp1, False), 'rp2': (rp2, rp2_fixed), 'rp3': (rp3, rp3_fixed)}
+    return siwim_groups
+
+def compute_confusion_matrix(siwim_stage=None):
+    siwim_groups = get_siwim_groups('../metadata/grp_and_fixed.hdf5')
+
     with h5py.File('../metadata/metadata.hdf5', 'r') as file:
         cnt = 0
         cnt_seen = 0
@@ -35,6 +52,8 @@ def compute_confusion_matrix():
         cnt_changed_ok = 0
         cnt_ok = 0
         cnt_raised_correct = 0
+
+        cnt_siwim_groups_found = 0
 
         correct = 0
         tp = {}
@@ -47,6 +66,8 @@ def compute_confusion_matrix():
             for id in data:
                 prop = json.loads(file[f'{groups}/{id}'].asstr()[()])
                 true_groups = prop['axle_groups'] if 'axle_groups' in prop else groups
+                predicted_groups = groups
+                groups_fixed = 'errors' in prop and 'fixed' in prop['errors']
 
                 cnt += 1
                 if cnt % 10000 == 0:
@@ -71,6 +92,12 @@ def compute_confusion_matrix():
                 # Photo OK means that we include it into the database.
                 if photo_ok:
                     cnt_ok += 1
+                   
+                    # Take the siwim prediction based on the given siwim siwim stage
+                    if siwim_stage != None:
+                        if id in siwim_groups:
+                            cnt_siwim_groups_found += 1
+                            (predicted_groups, groups_fixed) = siwim_groups[id][siwim_stage]
 
                     if true_groups not in grp_size:
                         grp_size[true_groups] = 0
@@ -79,9 +106,7 @@ def compute_confusion_matrix():
                     # groups is what SiWIM detected.
                     # true_groups is the camera ground_truth.
                     siwim_correct = True
-                    if 'errors' in prop and 'fixed' in prop['errors']:
-                        siwim_correct = False # The signals were fixed manually.
-                    elif true_groups != groups:
+                    if predicted_groups != true_groups:
                         siwim_correct = False
                         # But check, if the groups changed because of the raised axles.
                         if 'raised_axles' in prop and len(prop['raised_axles'].strip()) > 0:
@@ -104,7 +129,7 @@ def compute_confusion_matrix():
 
     n = cnt_ok
     
-    print(f'Seen: {cnt_seen}, ok: {cnt_ok}, changed: {cnt_changed}, changed and ok {cnt_changed_ok}, correct because raised {cnt_raised_correct}.')
+    print(f'Seen: {cnt_seen}, ok: {cnt_ok}, changed: {cnt_changed}, changed and ok {cnt_changed_ok}, correct because raised {cnt_raised_correct}, found in siwim database: {cnt_siwim_groups_found}.')
     print(f'Correct: {correct}/{n} ({100 * correct / n}%).')
     
     confusion_matrix = {}
@@ -170,8 +195,8 @@ def compute_precision_recall(confusion_matrix):
     n = len(confusion_matrix.keys())
     return stat, total_precision, total_recall, total_f1
 
-def main():
-    confusion_matrix = compute_confusion_matrix()
+def process_for_stage(siwim_stage=None):
+    confusion_matrix = compute_confusion_matrix(siwim_stage)
 
     #with open(f'{dir_results}siwim-confusion_matrix.json', 'w') as file:
     #    json.dump(confusion_matrix, file)
@@ -185,6 +210,19 @@ def main():
         f.write(f'{groups},{values['precision']},{values['recall']},{values['F1']}\n')
     f.write(f'AVERAGE,{precision},{recall},{f1}\n')
     f.close()
+
+def main():
+    print('Computing for stage RP1')
+    process_for_stage('rp1')
+
+    print('Computing for stage RP2')
+    process_for_stage('rp2')
+    
+    print('Computing for stage RP3')
+    process_for_stage('rp3')
+    
+    print('Computing for metadata')
+    process_for_stage()
 
 if __name__ == "__main__":
     main()

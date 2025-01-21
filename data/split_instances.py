@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 
-def run(dir_braid, num_training_samples, min_testing_samples, max_testing_samples):
+def run(dir_braid, num_training_samples, min_testing_samples, max_testing_samples, use_predefined_ids=False):
     print("Loading data_id.npy")
     data_id = np.load(f'{dir_braid}data/data_id.npy')
     
@@ -17,13 +17,17 @@ def run(dir_braid, num_training_samples, min_testing_samples, max_testing_sample
         groups_names = list(json.load(file).keys())
 
     # Load the predefined testing ids.
-    if os.path.exists('../metadata/testing_ids.json'):
-        print("Loading the predefined testings IDs.")
-        with open('../metadata/testing_ids.json') as file:
-            predefined_ids = json.load(file)
-        print(f'Found {len(predefined_ids)} predefined testing IDs.')
+    if use_predefined_ids:
+        if os.path.exists('../metadata/testing_ids.json'):
+            print("Loading the predefined testings IDs.")
+            with open('../metadata/testing_ids.json') as file:
+                predefined_ids = json.load(file)
+            print(f'Found {len(predefined_ids)} predefined testing IDs.')
+        else:
+            print("No predefined testing ids.")
     else:
-        print("No predefined testing ids.")
+        print("Not using predefined testing ids.")
+        predefined_ids = []
 
     # Separate indices according to classes.
     distribution = []

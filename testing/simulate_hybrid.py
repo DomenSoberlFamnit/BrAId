@@ -7,9 +7,9 @@ import tensorflow as tf
 
 dir_braid = '/home/hicup/disk/braid/'
 dir_photos = f'{dir_braid}photos/'
-dir_models = f'{dir_braid}models/'
+#dir_models = f'{dir_braid}models/'
 
-model_name = 'VGG16'
+model_name = 'VGG19'
 
 def is_duplicate(segment1, segment2):
     box1 = segment1['box']
@@ -116,7 +116,12 @@ def add_raised_axles(groups, raised_axles):
         raised_groups[idx] = str(int(raised_groups[idx]) + 1)
     return ''.join(raised_groups)
 
-def main():
+def simulate(model_number=None):
+    if model_number == None:
+        dir_models = f'{dir_braid}models/'
+    else:
+        dir_models = f'{dir_braid}models{model_number}/'
+
     with open(f'{dir_braid}group_index.json', 'r') as file:
         group_index = json.load(file)
     group_index = list(group_index.keys())
@@ -220,13 +225,19 @@ def main():
                 if cnt_all % 100 == 0:
                     print(f'Processed {cnt_all}; agree / disagree: {cnt_agree} / {cnt_disagree} ({100 * cnt_agree / (cnt_agree + cnt_disagree):.2f}%)')
 
-    print(f'All: {cnt_all}')
-    print(f'SiWIM incorrect: {cnt_siwim_incorrect} ({100 * cnt_siwim_incorrect / cnt_all}%)')
-    print(f'Hybrid incorrect: {cnt_hybrid_incorrect} ({100 * cnt_hybrid_incorrect / cnt_all}%)')
-    print(f'Camera used: {cnt_camera_used} ({100 * cnt_camera_used / cnt_all}%)')
-    print(f'Agree / disagree: {cnt_agree} / {cnt_disagree} ({100 * cnt_agree / (cnt_agree + cnt_disagree)}%)')
-    print(f'Raised axles / agree / disagree: {cnt_raised_axles} / {cnt_raised_axles_agree} / {cnt_raised_axles_disagree}')
-    print(f'Excluded correct / incorrect: {cnt_siwim_correct_excluded} / {cnt_siwim_incorrect_excluded}')
+    # print(f'All: {cnt_all}')
+    # print(f'SiWIM incorrect: {cnt_siwim_incorrect} ({100 * cnt_siwim_incorrect / cnt_all}%)')
+    # print(f'Hybrid incorrect: {cnt_hybrid_incorrect} ({100 * cnt_hybrid_incorrect / cnt_all}%)')
+    # print(f'Camera used: {cnt_camera_used} ({100 * cnt_camera_used / cnt_all}%)')
+    # print(f'Agree / disagree: {cnt_agree} / {cnt_disagree} ({100 * cnt_agree / (cnt_agree + cnt_disagree)}%)')
+    # print(f'Raised axles / agree / disagree: {cnt_raised_axles} / {cnt_raised_axles_agree} / {cnt_raised_axles_disagree}')
+    # print(f'Excluded correct / incorrect: {cnt_siwim_correct_excluded} / {cnt_siwim_incorrect_excluded}')
+
+    print(model_number, model_name, 100 * cnt_siwim_incorrect / cnt_all, 100 * cnt_hybrid_incorrect / cnt_all, 100 * cnt_camera_used / cnt_all, cnt_agree, cnt_disagree, cnt_raised_axles, cnt_raised_axles_agree, cnt_siwim_correct_excluded, cnt_siwim_incorrect_excluded)
+
+def main():
+    for i in range(10):
+        simulate(i + 1)
 
 if __name__ == "__main__":
     main()

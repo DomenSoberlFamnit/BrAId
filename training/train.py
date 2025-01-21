@@ -25,7 +25,7 @@ architectures = {
     'ResNet101V2': ResNet101V2
 }
 
-epochs = 10
+epochs = 20
 sample_count = 0
 
 def alter_image(img):

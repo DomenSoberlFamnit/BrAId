@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import json
 
 dir_braid = '/home/hicup/disk/braid/'
-dir_results = f'{dir_braid}results/'
+#dir_results = f'{dir_braid}results/'
 
 photos_subfolder = 'photos_test'
 
-def process_folder(path, name):
+def process_folder(path, name, dir_results):
     matrices = {}
     correct = 0
     incorrect = 0
@@ -77,11 +77,13 @@ def process_folder(path, name):
 
     plot_data.plot(kind='bar', figsize=(20,4))
     plt.savefig(f'{dir_results}{name}/precision-recall.png')
+    plt.close()
 
     return 100*correct/(correct+incorrect), sum_precision/len(matrices), sum_recall/len(matrices), sum_f/len(matrices), matrix
 
-def main():
-    fname =f'{dir_results}precision-recall.txt'
+def process_results(number):
+    dir_results = f'{dir_braid}results{number}/'
+    fname = f'{dir_results}precision-recall.txt'
 
     # Delete existing results
     if os.path.exists(fname):
@@ -91,13 +93,16 @@ def main():
 
     for dir in os.listdir(dir_results):
         if os.path.isdir(f'{dir_results}{dir}') and os.path.exists(f'{dir_results}{dir}/{photos_subfolder}/'):
-            ca, precision, recall, f, matrix = process_folder(f'{dir_results}{dir}/{photos_subfolder}/', dir)
+            ca, precision, recall, f, matrix = process_folder(f'{dir_results}{dir}/{photos_subfolder}/', dir, dir_results)
             results[dir] = {'matrix': matrix, 'CA':ca, 'precision': precision, 'recall': recall, 'F1': f}
-            print(dir, ca, precision, recall, f)
+            print(number, dir, ca, precision, recall, f)
 
     with open(fname, "w") as outfile: 
         json.dump(results, outfile)
 
+def main():
+    for i in range(10):
+        process_results(i + 1)
 
 if __name__ == "__main__":
     main()
