@@ -66,11 +66,13 @@ def main():
                 # The road ground truth is different if there are raised axles.
                 truth_road = truth_camera
                 raised_axles = prop['raised_axles'].strip() if 'raised_axles' in prop else ''
+
                 if len(raised_axles) > 0:
                     truth_road = remove_raised_axles(truth_camera, raised_axles)
 
                 if id in siwim_groups:
                     rp = siwim_groups[id]
+                    raised_axles = raised_axles.replace(',', ' ')
                     output.write(f'{id},{rp['rp1']},{rp['rp2']},{rp['rp3']},{truth_camera},{truth_road},{raised_axles}\n')
                 else:
                     cnt_missing += 1

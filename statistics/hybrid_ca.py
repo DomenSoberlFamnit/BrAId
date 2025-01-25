@@ -76,16 +76,18 @@ def process_classification_data(i, architecture, cls_data, output):
                 (nn_truth, nn_prediction) = cls_data[id]
 
                 # The label is the camera ground truth.
-                truth_camera = prop['axle_groups'] if 'axle_groups' in prop else groups
+                truth_manual = prop['axle_groups'] if 'axle_groups' in prop else groups
+                truth_camera = nn_truth # This is hand-checked and corrected after training.
 
                 # The road ground truth is different if there are raised axles.
                 truth_road = truth_camera
                 raised_axles = prop['raised_axles'].strip() if 'raised_axles' in prop else ''
                 if len(raised_axles) > 0:
-                    truth_road = remove_raised_axles(truth_camera, raised_axles)
+                    truth_road = remove_raised_axles(truth_manual, raised_axles)
 
                 if id in siwim_groups:
                     rp = siwim_groups[id]
+                    raised_axles = raised_axles.replace(',', ' ')
                     output.write(f'{i},{architecture},{id},{rp['rp1']},{rp['rp2']},{rp['rp3']},{truth_camera},{truth_road},{raised_axles},{nn_truth},{nn_prediction}\n')
                 else:
                     cnt_missing += 1
@@ -93,12 +95,14 @@ def process_classification_data(i, architecture, cls_data, output):
     print(f'Missing instances: {cnt_missing}')
 
 def main():
+    output = open(f'hybrid_ca.csv', 'w')
+    output.write('EXPERIMENT,ARCHITECTURE,ID,RP1,RP2,RP3,CAMERA,ROAD,RAISED,NN_TRUTH,NN_PREDICTION\n')
+   
     for (i, architecture, cls_data) in get_testing_results(number=None if len(sys.argv) < 2 else int(sys.argv[1])):
         print(f'Processing architecture {architecture} number {i}.')
-        output = open(f'hybrid_ca_{i}.csv', 'w')
-        output.write('EXPERIMENT,ARCHITECTURE,ID,RP1,RP2,RP3,CAMERA,ROAD,RAISED,NN_TRUTH,NN_PREDICTION\n')
         process_classification_data(i, architecture, cls_data, output)
-        output.close()
+    
+    output.close()
 
 if __name__ == "__main__":
     main()
