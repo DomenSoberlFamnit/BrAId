@@ -8,7 +8,7 @@ import create_instances
 import split_instances
 import check_instances
 
-dir_siwim = '/home/hicup/disk/siwim/'
+dir_siwim = '/home/hicup/disk/siwim/siwim/'
 dir_braid = '/home/hicup/disk/braid/'
 
 force_instance_split = True  # Randomly split the instances even if the datasets already exist.
