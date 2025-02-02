@@ -10,6 +10,10 @@ args=(
   "ResNet101V2"
 )
 
-for arg in "${args[@]}"; do
-  $PROGRAM train.py $arg
+for i in 1 2 3 4 5
+do
+	for arg in "${args[@]}"; do
+		echo "Training experiment $arg $i"
+		$PROGRAM train.py $arg
+	done
 done

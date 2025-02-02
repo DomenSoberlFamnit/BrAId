@@ -1,17 +1,17 @@
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-
-import sys
-from timeit import default_timer as timer
-import numpy as np
-from PIL import Image, ImageDraw
-import tensorflow as tf
-from tensorflow.keras.applications import VGG16, VGG19, DenseNet121, MobileNetV3Small, ResNet101V2
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, Flatten, Dropout
-from tensorflow.keras.optimizers import Adam
-import json
 import random
+import json
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Dense, Flatten, Dropout
+from tensorflow.keras.models import Model
+from tensorflow.keras.applications import VGG16, VGG19, DenseNet121, MobileNetV3Small, ResNet101V2
+import tensorflow as tf
+from PIL import Image, ImageDraw
+import numpy as np
+from timeit import default_timer as timer
+import sys
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 dir_braid = '/home/hicup/disk/braid/'
 dir_models = f'{dir_braid}models/'
@@ -25,15 +25,22 @@ architectures = {
     'ResNet101V2': ResNet101V2
 }
 
-epochs = 20
+epochs = 10
 sample_count = 0
+
+
+def update_dirs(experiment):
+    global dir_models, dir_results
+    dir_models = f'{dir_braid}models{experiment}/'
+    dir_results = f'{dir_braid}results{experiment}/'
+
 
 def alter_image(img):
     width, height = img.size
     new_width = round(random.uniform(0.9, 1.0) * width)
     new_height = round(random.uniform(0.9, 1.0) * height)
     img = img.resize((new_width, new_height))
-    
+
     space_x = width - new_width
     space_y = height - new_height
     offset_x = round(random.uniform(0.0, space_x))
@@ -42,6 +49,7 @@ def alter_image(img):
     new_img = Image.new(mode="RGB", size=(width, height), color="black")
     new_img.paste(img, (offset_x, offset_y))
     return new_img
+
 
 def alter_batch(batch):
     new_batch = []
@@ -52,8 +60,10 @@ def alter_batch(batch):
         new_batch.append(new_sample)
     return np.array(new_batch)
 
+
 def build_model(architecture, class_count):
-    model = architecture(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    model = architecture(weights='imagenet',
+                         include_top=False, input_shape=(224, 224, 3))
 
     x = model.output
     x = Flatten()(x)
@@ -62,8 +72,10 @@ def build_model(architecture, class_count):
     predictions = Dense(class_count, activation='softmax')(x)
 
     model = Model(inputs=model.input, outputs=predictions)
-    model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=Adam(learning_rate=0.0001),
+                  loss='categorical_crossentropy', metrics=['accuracy'])
     return model
+
 
 def slot_indices(gpu_capacity, set_size):
     indices = []
@@ -76,6 +88,7 @@ def slot_indices(gpu_capacity, set_size):
         idx_from = idx_to
     return indices
 
+
 def test(model, test_x, test_y, gpu_capacity=10000):
     correct = 0
 
@@ -84,8 +97,9 @@ def test(model, test_x, test_y, gpu_capacity=10000):
         for (prediction, true_y) in zip(predictions, test_y[idx_from:idx_to]):
             if np.argmax(prediction) == np.argmax(true_y):
                 correct += 1
-    
+
     return correct / len(test_x)
+
 
 def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capacity=10000):
     global sample_count
@@ -93,12 +107,13 @@ def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capaci
     for (idx_from, idx_to, _) in slot_indices(gpu_capacity, len(train_x)):
         batch_x = alter_batch(train_x[idx_from:idx_to])
         time_start = timer()
-        history = model.fit(x=batch_x, y=train_y[idx_from:idx_to], batch_size=32, epochs=1, validation_split=0, shuffle=False)
+        history = model.fit(x=batch_x, y=train_y[idx_from:idx_to],
+                            batch_size=32, epochs=1, validation_split=0, shuffle=False)
         time_end = timer()
-        
+
         time_ms = 1000 * (time_end - time_start) / (idx_to - idx_from)
         sample_count += idx_to - idx_from
-        
+
         loss = history.history['loss'][0]
         train_accuracy = history.history['accuracy'][0]
 
@@ -106,8 +121,10 @@ def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capaci
 
         fname = f'{dir_results}{name}/training.txt'
         f = open(fname, 'a')
-        f.write(f'{epoch + 1}, {sample_count}, {loss}, {train_accuracy}, {test_accuracy}, {time_ms}\n')
+        f.write(
+            f'{epoch + 1}, {sample_count}, {loss}, {train_accuracy}, {test_accuracy}, {time_ms}\n')
         f.close()
+
 
 def process_model(name, architecture, group_index, training_x, training_y, testing_x, testing_y):
     global sample_count
@@ -125,6 +142,7 @@ def process_model(name, architecture, group_index, training_x, training_y, testi
 
     tf.keras.backend.clear_session()
 
+
 def main():
     # Create folders
     if not os.path.exists(dir_models):
@@ -134,13 +152,19 @@ def main():
 
     # Get the architecture name
     architecture = None
-    if len(sys.argv) == 2:
+    experiment = None
+    if len(sys.argv) >= 2:
         name = sys.argv[1]
         if name in architectures.keys():
             architecture = architectures[name]
-    
-    if architecture == None:
+        if len(sys.argv) > 2:
+            experiment = sys.argv[2]
+
+    if architecture is None:
         quit()
+
+    if experiment is not None:
+        update_dirs(experiment)
 
     print(f'Preparing to train {name}.')
 
@@ -179,7 +203,8 @@ def main():
     print("Loading testing_y.npy")
     testing_y = np.load(f'{dir_braid}data/testing_y.npy')
 
-    process_model(name, architecture, group_index, training_x, training_y, testing_x, testing_y)
+    process_model(name, architecture, group_index, training_x,
+                  training_y, testing_x, testing_y)
 
 
 if __name__ == "__main__":
