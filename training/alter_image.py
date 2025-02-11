@@ -144,51 +144,15 @@ def process_model(name, architecture, group_index, training_x, training_y, testi
 
 
 def main():
-    # Get the architecture name
-    architecture = None
-    experiment = None
-    if len(sys.argv) >= 2:
-        name = sys.argv[1]
-        if name in architectures.keys():
-            architecture = architectures[name]
-        if len(sys.argv) > 2:
-            experiment = sys.argv[2]
-
-    if architecture is None:
-        print('Architecture not specified.')
-        quit()
-
-    if experiment is not None:
-        update_dirs(experiment)
-
-    print(f'Preparing to train {name}.')
-
-    # Create folders
-    if not os.path.exists(dir_models):
-        os.mkdir(dir_models)
-    if not os.path.exists(dir_results):
-        os.mkdir(dir_results)
-    
-    # Delete existing results
-    fname = f'{dir_results}{name}'
-    if not os.path.exists(fname):
-        os.mkdir(fname)
-    fname = f'{dir_results}{name}/training.txt'
-    if os.path.exists(fname):
-        os.remove(fname)
-
-    # Create the new results file.
-    fname = f'{dir_results}{name}/training.txt'
-    f = open(fname, 'a')
-    f.write('epoch, samples, loss, train accuracy, test accuracy, time ms\n')
-    f.close()
-
     # Load the data
     print("Loading group_index.json")
     file = open(f'{dir_braid}group_index.json')
     group_index = json.load(file)
     file.close()
 
+    print("Loading training_id.npy")
+    training_id = np.load(f'{dir_braid}data/training_id.npy')
+    
     print("Loading training_x.npy")
     training_x = np.load(f'{dir_braid}data/training_x.npy')
 
@@ -204,8 +168,10 @@ def main():
     print("Loading testing_y.npy")
     testing_y = np.load(f'{dir_braid}data/testing_y.npy')
 
-    process_model(name, architecture, group_index, training_x,
-                  training_y, testing_x, testing_y)
+    for (idx, instance) in zip(training_id, training_x):
+        if idx == 108051:
+            print(f'Found {idx}')
+            quit()
 
 
 if __name__ == "__main__":

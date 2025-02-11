@@ -1,6 +1,7 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
+import sys
 from timeit import default_timer as timer
 import shutil
 import numpy as np
@@ -18,6 +19,11 @@ architectures = [
     'MobileNetV3Small',
     'ResNet101V2'
 ]
+
+def update_dirs(number):
+    global dir_models, dir_results
+    dir_models = f'{dir_braid}models{number}/'
+    dir_results = f'{dir_braid}results{number}/'
 
 def process_model(name, groups, data_id, data_x, data_y):
     dir_photos = f'{dir_results}{name}/photos_test/'
@@ -76,6 +82,11 @@ def process_model(name, groups, data_id, data_x, data_y):
     tf.keras.backend.clear_session()
 
 def main():
+    number = ''
+    if len(sys.argv) > 1:
+        number = sys.argv[1]
+        update_dirs(number)
+
     print("Preparing to test the models on testing data.")
 
     # Load the data
@@ -88,13 +99,13 @@ def main():
     groups = list(group_index.keys())
 
     print("Loading testing_id.npy")
-    testing_id = np.load(f'{dir_braid}data/testing_id.npy')
+    testing_id = np.load(f'{dir_braid}data{number}/testing_id.npy')
 
     print("Loading testing_x.npy")
-    testing_x = np.load(f'{dir_braid}data/testing_x.npy')
+    testing_x = np.load(f'{dir_braid}data{number}/testing_x.npy')
 
     print("Loading testing_y.npy")
-    testing_y = np.load(f'{dir_braid}data/testing_y.npy')
+    testing_y = np.load(f'{dir_braid}data{number}/testing_y.npy')
 
     for name in architectures:
         process_model(name, groups, testing_id, testing_x, testing_y)

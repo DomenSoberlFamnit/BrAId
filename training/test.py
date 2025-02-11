@@ -62,16 +62,15 @@ def alter_batch(batch):
 
 
 def build_model(architecture, class_count):
-    model = architecture(weights='imagenet',
-                         include_top=False, input_shape=(224, 224, 3))
+    model = architecture(weights='imagenet', include_top=True, input_shape=(224, 224, 3))
 
-    x = model.output
-    x = Flatten()(x)
-    x = Dense(512, activation='relu')(x)
-    x = Dropout(0.5)(x)
-    predictions = Dense(class_count, activation='softmax')(x)
+#    x = model.output
+#    x = Flatten()(x)
+#    x = Dense(512, activation='relu')(x)
+#    x = Dropout(0.5)(x)
+#    predictions = Dense(class_count, activation='softmax')(x)
 
-    model = Model(inputs=model.input, outputs=predictions)
+#    model = Model(inputs=model.input, outputs=predictions)
     model.compile(optimizer=Adam(learning_rate=0.0001),
                   loss='categorical_crossentropy', metrics=['accuracy'])
     return model
@@ -144,6 +143,11 @@ def process_model(name, architecture, group_index, training_x, training_y, testi
 
 
 def main():
+    model = build_model(VGG19, 13)
+    print(model.summary())
+    quit()
+
+
     # Get the architecture name
     architecture = None
     experiment = None

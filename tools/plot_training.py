@@ -18,13 +18,13 @@ def read_values(filename, architecture, data):
                 header = False
                 continue
             
-            samples = int(int(row[1].strip()) / 10000)
+            samples = int(int(row[1].strip()) / 6500)
             loss = round(float(row[2].strip()), 4)
             acc = round(float(row[4].strip()) * 100, 2) #+ corr[architecture]
 
             if samples not in values:
                 values[samples] = []
-            values[samples].append(acc)
+            values[samples].append(loss)
 
     csvfile.close()
 
@@ -35,7 +35,7 @@ def compute_points(data):
         for samples in data[architecture]:
             mean = np.mean(data[architecture][samples])
             stdev = np.std(data[architecture][samples])
-            points[architecture].append((samples, mean, stdev))
+            points[architecture].append((samples/10.0, mean, stdev))
     return points
 
 def print_points(points):
