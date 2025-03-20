@@ -51,6 +51,6 @@ def axle_groups_from_image(
         predicted_group = np.argmax(prediction)
         prediction_probability = float(prediction[predicted_group])
 
-        ret['axle_groups'].append((groups[predicted_group], prediction_probability))
+        ret['axle_groups'].append((variant, groups[predicted_group], prediction_probability))
 
     return ret
