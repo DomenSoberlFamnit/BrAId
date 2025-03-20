@@ -9,3 +9,22 @@ A collection of Python scripts to extract and prepare data from SiWIM database, 
 - results: results of testing.
 - statistics: scripts to extract from the results the statistical representations.
 - tools: various tools for data manipulation and insights.
+
+## Usage
+
+Only the trained models can be used by external users that don't have access to the internal libraries and databases.
+
+### Installation
+
+`pip install BrAId@git+https://github.com/DomenSoberlFamnit/BrAId`
+
+### Minimal example
+
+```
+from PIL import Image
+import braid
+
+img = Image.open('truck_sample.jpg')
+results = braid.axle_groups_from_image(image=img, site='sentvid')
+print(results)
+```
