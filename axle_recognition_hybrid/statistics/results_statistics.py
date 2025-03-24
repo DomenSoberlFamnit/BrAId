@@ -1,12 +1,14 @@
+import numpy as np
 import pandas as pd
 
 include_raised_axles = True
 
 df = pd.read_csv('hybrid-results.csv')
-df = df[['RP2', 'ROAD', 'NN_PREDICTION', 'CAMERA', 'AGREE/POSITIVE', 'IS_RAISED']]
+df = df[['EXPERIMENT', 'RP2', 'ROAD', 'NN_PREDICTION', 'CAMERA', 'AGREE/POSITIVE', 'IS_RAISED']]
 
 siwim = {}
 cv = {}
+cv_exp = {}
 hybrid = {}
 cnt_road = {}
 cnt_camera = {}
@@ -16,6 +18,7 @@ cnt_agreed_raised = 0
 cnt_all = 0
 
 for index, row in df.iterrows():
+    exp = int(row['EXPERIMENT'])
     rp2 = str(row['RP2'])
     nn = str(row['NN_PREDICTION'])
     road = str(row['ROAD'])
@@ -27,6 +30,12 @@ for index, row in df.iterrows():
         continue
 
     positive = row['AGREE/POSITIVE'] == 1
+
+    if exp not in cv_exp:
+        cv_exp[exp] = {
+            'nn': {'correct': 0, 'incorrect': 0},
+            'siwim': {'correct': 0, 'incorrect': 0}
+        }
 
     # SIWIM
     if rp2 not in siwim:
@@ -40,6 +49,11 @@ for index, row in df.iterrows():
         siwim[road]['fn'] += 1
         siwim[rp2]['fp'] += 1
 
+    if rp2 == road:
+        cv_exp[exp]['siwim']['correct'] += 1
+    else:
+        cv_exp[exp]['siwim']['incorrect'] += 1
+
     # CV
     if nn not in cv:
         cv[nn] = {'tp': 0, 'fp': 0, 'fn': 0}
@@ -51,6 +65,11 @@ for index, row in df.iterrows():
     else:
         cv[camera]['fn'] += 1
         cv[nn]['fp'] += 1
+
+    if nn == camera:
+        cv_exp[exp]['nn']['correct'] += 1
+    else:
+        cv_exp[exp]['nn']['incorrect'] += 1
 
     # Hybrid
     if rp2 not in hybrid:
@@ -148,3 +167,16 @@ print('---------------')
 print(f'{(100 * sum_siwim_p):.2f} {(100 * sum_siwim_r):.2f} {(100 * sum_cv_p):.2f} {(100 * sum_cv_r):.2f} {(100 * sum_hybrid_p):.4f} {(100 * sum_hybrid_r):.4f}')
 print(f'Positive raised axles: {cnt_agreed_raised}')
 print(f'All cases: {cnt_all}')
+
+print('---------------')
+ca_nn = []
+ca_siwim = []
+for exp in cv_exp:
+    nn = cv_exp[exp]['nn']
+    siwim = cv_exp[exp]['siwim']
+
+    ca_nn.append(nn['correct'] / (nn['correct'] + nn['incorrect']))
+    ca_siwim.append(siwim['correct'] / (siwim['correct'] + siwim['incorrect']))
+
+print(np.mean(ca_nn), np.std(ca_nn))
+print(np.mean(ca_siwim), np.std(ca_siwim))
