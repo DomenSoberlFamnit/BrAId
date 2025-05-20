@@ -117,7 +117,10 @@ def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capaci
         loss = history.history['loss'][0]
         train_accuracy = history.history['accuracy'][0]
 
-        test_accuracy = test(model, testing_x, testing_y)
+        if len(testing_y) > 0:
+            test_accuracy = test(model, testing_x, testing_y)
+        else:
+            test_accuracy = 0
 
         fname = f'{dir_results}{name}/training.txt'
         f = open(fname, 'a')

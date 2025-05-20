@@ -61,5 +61,7 @@ def run(dir_braid):
             count_intersecting += 1
 
     for group_name in groups:
+        if group_name not in count_testing:
+            count_testing[group_name] = 0
         print(f'{group_name}: {count_training[group_name]} training / {count_testing[group_name]} testing / {len(count_distinct[group_name])} distinct training.')
     print(f'The number of instances intersecting the training and the testing set: {count_intersecting}')
