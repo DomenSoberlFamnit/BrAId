@@ -9,7 +9,7 @@ def axle_groups_from_image(
         image: Image,
         site: str,
         architecture: str = 'VGG19',
-        variants: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) -> dict:
+        variants: list[int] = None) -> dict:
 
     models = _init_models()
     if models is None:
@@ -39,8 +39,8 @@ def axle_groups_from_image(
         'axle_groups': []
     }
 
-    for variant in variants:
-        model_file = f'models/{site}/{architecture}-{variant}.keras'
+    if variants is None:
+        model_file = f'models/{site}/{architecture}.keras'
 
         if model_file not in models['braid']:
             return {'success': False, 'msg': 'Error: Unknown model.'}
@@ -51,6 +51,21 @@ def axle_groups_from_image(
         predicted_group = np.argmax(prediction)
         prediction_probability = float(prediction[predicted_group])
 
-        ret['axle_groups'].append((variant, groups[predicted_group], prediction_probability))
+        ret['axle_groups'].append((groups[predicted_group], prediction_probability))
+
+    else:
+        for variant in variants:
+            model_file = f'models/{site}/{architecture}-{variant}.keras'
+
+            if model_file not in models['braid']:
+                return {'success': False, 'msg': 'Error: Unknown model.'}
+
+            model = models['braid'][model_file]
+
+            prediction = model.predict(np.array([instance]), verbose=0)[0]
+            predicted_group = np.argmax(prediction)
+            prediction_probability = float(prediction[predicted_group])
+
+            ret['axle_groups'].append((variant, groups[predicted_group], prediction_probability))
 
     return ret

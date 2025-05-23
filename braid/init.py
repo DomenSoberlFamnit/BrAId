@@ -11,6 +11,7 @@ _models_dirs = [
     'models/sentvid'
 ]
 _models_files = [
+    ('models/sentvid/VGG19.keras',   '632955d52056f80894ae003d9c0419ca9c805505bea1307f5e42fdca44fbc6ee'),
     ('models/sentvid/VGG19-1.keras', 'b765a140266b1ab7a3e4b34f297dbf95dc6a2a9fee02893c1fdb5beffccfa734'),
     ('models/sentvid/VGG19-2.keras', '533f56c8e33acd32b178dabb4af96e6276797408f0e753e6eb18f51d717f6b3d'),
     ('models/sentvid/VGG19-3.keras', '966a41260db325e6e4f5e0104ed2b50c753e6950a6c52edae68b8ccca59fdaf5'),
