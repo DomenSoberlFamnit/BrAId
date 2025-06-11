@@ -2,6 +2,9 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 from img_proc import _yolo, _img_resize_224
+import time
+
+tf.config.set_visible_devices([], 'GPU')
 
 _group_index = {
     'sentvid': ["113", "1211", "122", "11", "22", "111", "112", "1112", "12", "1111", "123", "1212", "1222"]
@@ -40,7 +43,9 @@ def axle_groups_from_image(
         'axle_groups': []
     }
 
+    t = time.time()
     prediction = model.predict(np.array([instance]), verbose=0)[0]
+    print("time", time.time() - t)
     predicted_group = np.argmax(prediction)
     prediction_probability = float(prediction[predicted_group])
 
