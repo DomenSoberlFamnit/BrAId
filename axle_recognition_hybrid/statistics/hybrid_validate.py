@@ -30,35 +30,33 @@ def remove_raised_axles(truth_camera, raised_axles):
         raised_groups[idx] = str(int(raised_groups[idx]) - 1) # Remove the raised axle.
     return ''.join(raised_groups)
 
-def get_testing_results(number=None):
-    (a, b) = (1, 11) if number == None else (number, number + 1)
+def get_testing_results():
     data = []
-    for i in range(a, b):
-        path = f'{dir_braid}results{i}/'
-        for architecture in os.listdir(path):
-            if architecture not in use_architectures:
-                continue
-            cls_data = {}
-            filepath = os.path.join(path, architecture)
-            if os.path.isdir(filepath):
-                for (_, _, files) in os.walk(filepath):
-                    for file in files:
-                        if file.endswith('.png'):
-                            parts = file.split('.')[0].split('_')
-                            if len(parts) == 4:
-                                id = parts[0]
-                                truth = parts[1]
-                                prediction = parts[2]
-                                if id in cls_data:
-                                    print(f'Duplicate ID {id}')
-                                    quit()
-                                cls_data[id] = (truth, prediction)
-                            else:
-                                print(f'Skipped {file}.')
-            data.append((i, architecture, cls_data))
+    path = f'{dir_braid}results/'
+    for architecture in os.listdir(path):
+        if architecture not in use_architectures:
+            continue
+        cls_data = {}
+        filepath = os.path.join(path, architecture)
+        if os.path.isdir(filepath):
+            for (_, _, files) in os.walk(filepath):
+                for file in files:
+                    if file.endswith('.png'):
+                        parts = file.split('.')[0].split('_')
+                        if len(parts) == 4:
+                            id = parts[0]
+                            truth = parts[1]
+                            prediction = parts[2]
+                            if id in cls_data:
+                                print(f'Duplicate ID {id}')
+                                quit()
+                            cls_data[id] = (truth, prediction)
+                        else:
+                            print(f'Skipped {file}.')
+        data.append((architecture, cls_data))
     return data
 
-def process_classification_data(i, architecture, cls_data, output):
+def process_classification_data(architecture, cls_data, output):
     # Build the index of siwim axle groups.
     hdf = pd.read_hdf('../metadata/grp_and_fixed.hdf5')
     siwim_groups = {}
@@ -93,7 +91,7 @@ def process_classification_data(i, architecture, cls_data, output):
         if id in siwim_groups:
             rp = siwim_groups[id]
             raised_axles = raised_axles.replace(',', ' ')
-            output.write(f"{i},{architecture},{id},{rp['rp1']},{rp['rp2']},{rp['rp3']},{truth_camera},{truth_road},{raised_axles},{nn_truth},{nn_prediction}\n")
+            output.write(f"{architecture},{id},{rp['rp1']},{rp['rp2']},{rp['rp3']},{truth_camera},{truth_road},{raised_axles},{nn_truth},{nn_prediction}\n")
         else:
             missing.append(id)
 
@@ -131,11 +129,11 @@ def process_classification_data(i, architecture, cls_data, output):
 
 def main():
     output = open(f'hybrid_ca.csv', 'w')
-    output.write('EXPERIMENT,ARCHITECTURE,ID,RP1,RP2,RP3,CAMERA,ROAD,RAISED,NN_TRUTH,NN_PREDICTION\n')
+    output.write('ARCHITECTURE,ID,RP1,RP2,RP3,CAMERA,ROAD,RAISED,NN_TRUTH,NN_PREDICTION\n')
    
-    for (i, architecture, cls_data) in get_testing_results(number=None if len(sys.argv) < 2 else int(sys.argv[1])):
-        print(f'Processing architecture {architecture} number {i}.')
-        process_classification_data(i, architecture, cls_data, output)
+    for (architecture, cls_data) in get_testing_results():
+        print(f'Processing architecture {architecture}.')
+        process_classification_data(architecture, cls_data, output)
     
     output.close()
 

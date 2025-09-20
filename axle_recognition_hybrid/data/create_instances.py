@@ -27,6 +27,7 @@ def run(dir_braid):
 
     print('Used groups: ', end='')
     groups = []
+    unused_groups = []
     group_index = {}
     idx = 0
     for group in class_distribution:
@@ -35,7 +36,11 @@ def run(dir_braid):
             group_index[group] = idx
             idx += 1
             print(f'{group} ', end='')
+        else:
+            unused_groups.append(group)
     print()
+
+    #group_index['other'] = idx
 
     print('Saving group_index.json')
     with open(f'{dir_braid}group_index.json', "w") as outfile: 
@@ -53,6 +58,15 @@ def run(dir_braid):
                 file_path = os.path.join(root, file)
                 pngs.append([file_path, group])
 
+    # Add the unused photos to the "other" group.
+    #for group in unused_groups:
+    #    for root, dirs, files in os.walk(f'{dir_photos}{group}'):
+    #        for file in files:
+    #            ids.append(int(file.split('.')[0]))
+
+    #            file_path = os.path.join(root, file)
+    #            pngs.append([file_path, 'other'])
+    
     ids = np.array(ids, dtype=np.uint32)
     pngs = np.array(pngs)
     total_cnt = len(pngs)
@@ -65,7 +79,7 @@ def run(dir_braid):
         img = Image.open(filename)
         img = tf.keras.preprocessing.image.img_to_array(img)
 
-        vector = np.zeros(len(groups))
+        vector = np.zeros(len(group_index))
         vector[group_index[group]] = 1
 
         data_x.append(img)

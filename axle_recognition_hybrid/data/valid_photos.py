@@ -1,3 +1,4 @@
+import os
 import h5py
 import json
 
@@ -16,6 +17,21 @@ def prop_has_errors(prop):
     return False
 
 def run(dir_braid):
+    additional_ids = {}
+
+    if os.path.exists('../metadata/additional_ids.txt'):
+        with open('../metadata/additional_ids.txt') as f:
+            for line in f:
+                parts = line.split()
+                id = parts[0]
+                groups = parts[1]
+                
+                if groups == '?':
+                    continue
+
+                additional_ids[id] = groups    
+        f.close()
+
     with h5py.File('../metadata/metadata.hdf5', 'r') as file:
         cnt = 0
         cnt_seen = 0
@@ -55,6 +71,14 @@ def run(dir_braid):
                 if photo_ok:
                     cnt_ok += 1
                     photos.append({'photo_id': id, 'segment': segment, 'class': true_groups})
+            
+        for id in additional_ids:
+            groups = additional_ids[id]
+
+            cnt_seen += 1
+            cnt_ok += 1
+            photos.append({'photo_id': id, 'segment': 'r', 'class': groups})
+
         
     with open(f'{dir_braid}valid_photos.json', 'w') as file:
         json.dump(photos, file)

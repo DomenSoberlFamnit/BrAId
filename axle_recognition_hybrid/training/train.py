@@ -1,10 +1,7 @@
 import random
 import json
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Dense, Flatten, Dropout
-from tensorflow.keras.models import Model
-from tensorflow.keras.applications import VGG16, VGG19, DenseNet121, MobileNetV3Small, ResNet101V2
 import tensorflow as tf
+import tf_models
 from PIL import Image, ImageDraw
 import numpy as np
 from timeit import default_timer as timer
@@ -12,20 +9,13 @@ import sys
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+import dark_attention
 
 dir_braid = '/home/hicup/disk/braid/'
 dir_models = f'{dir_braid}models/'
 dir_results = f'{dir_braid}results/'
 
-architectures = {
-    'VGG16': VGG16,
-    'VGG19': VGG19,
-    'DenseNet121': DenseNet121,
-    'MobileNetV3Small': MobileNetV3Small,
-    'ResNet101V2': ResNet101V2
-}
-
-epochs = 10
+epochs = 20
 sample_count = 0
 
 
@@ -61,22 +51,6 @@ def alter_batch(batch):
     return np.array(new_batch)
 
 
-def build_model(architecture, class_count):
-    model = architecture(weights='imagenet',
-                         include_top=False, input_shape=(224, 224, 3))
-
-    x = model.output
-    x = Flatten()(x)
-    x = Dense(512, activation='relu')(x)
-    x = Dropout(0.5)(x)
-    predictions = Dense(class_count, activation='softmax')(x)
-
-    model = Model(inputs=model.input, outputs=predictions)
-    model.compile(optimizer=Adam(learning_rate=0.0001),
-                  loss='categorical_crossentropy', metrics=['accuracy'])
-    return model
-
-
 def slot_indices(gpu_capacity, set_size):
     indices = []
     idx_from, idx_to = 0, 0
@@ -106,6 +80,7 @@ def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capaci
 
     for (idx_from, idx_to, _) in slot_indices(gpu_capacity, len(train_x)):
         batch_x = alter_batch(train_x[idx_from:idx_to])
+
         time_start = timer()
         history = model.fit(x=batch_x, y=train_y[idx_from:idx_to],
                             batch_size=32, epochs=1, validation_split=0, shuffle=False)
@@ -129,11 +104,17 @@ def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capaci
         f.close()
 
 
-def process_model(name, architecture, group_index, training_x, training_y, testing_x, testing_y):
-    global sample_count
+def build_model(name, group_index):
+    model = tf_models.build_model(name, len(group_index))
 
-    print(f'Building model {name}.')
-    model = build_model(architecture, len(group_index))
+    if model is not None:
+        model.summary()
+    
+    return model
+
+
+def process_model(model, name, training_x, training_y, testing_x, testing_y):
+    global sample_count
 
     sample_count = 0
     for epoch in range(epochs):
@@ -141,28 +122,35 @@ def process_model(name, architecture, group_index, training_x, training_y, testi
         train(model, name, epoch, training_x, training_y, testing_x, testing_y)
 
     print(f'Saving the model {name}.')
-    model.save(f'{dir_models}{name}.keras')
+    #model.save(f'{dir_models}{name}.keras')
+    model.save_weights(f'{dir_models}{name}.weights.h5')
 
     tf.keras.backend.clear_session()
 
 
 def main():
     # Get the architecture name
-    architecture = None
     experiment = None
     if len(sys.argv) >= 2:
         name = sys.argv[1]
-        if name in architectures.keys():
-            architecture = architectures[name]
         if len(sys.argv) > 2:
             experiment = sys.argv[2]
 
-    if architecture is None:
-        print('Architecture not specified.')
-        quit()
-
     if experiment is not None:
         update_dirs(experiment)
+
+    # Load the group index
+    print("Loading group_index.json")
+    file = open(f'{dir_braid}group_index.json')
+    group_index = json.load(file)
+    file.close()
+
+    # Build the model
+    print(f'Building the model {name}.')
+    model = build_model(name, group_index)
+    if model is None:
+        print('Unknow model type.')
+        quit()
 
     print(f'Preparing to train {name}.')
 
@@ -182,15 +170,10 @@ def main():
 
     # Create the new results file.
     fname = f'{dir_results}{name}/training.txt'
+    print(f'Creating file {fname}.')
     f = open(fname, 'a')
     f.write('epoch, samples, loss, train accuracy, test accuracy, time ms\n')
     f.close()
-
-    # Load the data
-    print("Loading group_index.json")
-    file = open(f'{dir_braid}group_index.json')
-    group_index = json.load(file)
-    file.close()
 
     print("Loading training_x.npy")
     training_x = np.load(f'{dir_braid}data/training_x.npy')
@@ -207,7 +190,7 @@ def main():
     print("Loading testing_y.npy")
     testing_y = np.load(f'{dir_braid}data/testing_y.npy')
 
-    process_model(name, architecture, group_index, training_x,
+    process_model(model, name, training_x,
                   training_y, testing_x, testing_y)
 
 

@@ -6,18 +6,22 @@ from timeit import default_timer as timer
 import shutil
 import numpy as np
 import tensorflow as tf
+import tf_models
 import json
+
 
 dir_braid = '/home/hicup/disk/braid/'
 dir_models = f'{dir_braid}models/'
 dir_results = f'{dir_braid}results/'
 
 architectures = [
-    'VGG16',
-    'VGG19',
-    'DenseNet121',
-    'MobileNetV3Small',
-    'ResNet101V2'
+#    'VGG16',
+#    'VGG19',
+#    'DenseNet121',
+#    'MobileNetV3Small',
+#    'ResNet101V2',
+#    'custom_19a'
+    'custom_x1'
 ]
 
 def update_dirs(number):
@@ -40,9 +44,9 @@ def process_model(name, groups, data_id, data_x, data_y):
     os.mkdir(dir_photos_miss)
 
     # Load the model
-    model_file = f'{dir_models}{name}.keras'
+    model_file = f'{dir_models}{name}.weights.h5'
     print(f'Loading the model: {model_file}')
-    model = tf.keras.models.load_model(model_file, safe_mode=False)
+    model = tf_models.load_model(name, len(groups), dir_models)
 
     cnt, hit = 0, 0
     time_ms = 0
