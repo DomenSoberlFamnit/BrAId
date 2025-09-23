@@ -63,7 +63,7 @@ def slot_indices(gpu_capacity, set_size):
     return indices
 
 
-def test(model, test_x, test_y, gpu_capacity=10000):
+def test(model, test_x, test_y, gpu_capacity=8000):
     correct = 0
 
     for (idx_from, idx_to, _) in slot_indices(gpu_capacity, len(test_x)):
@@ -75,7 +75,7 @@ def test(model, test_x, test_y, gpu_capacity=10000):
     return correct / len(test_x)
 
 
-def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capacity=10000):
+def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capacity=8000):
     global sample_count
 
     for (idx_from, idx_to, _) in slot_indices(gpu_capacity, len(train_x)):
@@ -151,7 +151,7 @@ def main():
     if model is None:
         print('Unknow model type.')
         quit()
-
+    
     print(f'Preparing to train {name}.')
 
     # Create folders

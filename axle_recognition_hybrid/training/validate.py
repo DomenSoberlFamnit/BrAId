@@ -15,13 +15,11 @@ dir_models = f'{dir_braid}models/'
 dir_results = f'{dir_braid}results/'
 
 architectures = [
-#    'VGG16',
-#    'VGG19',
-#    'DenseNet121',
-#    'MobileNetV3Small',
-#    'ResNet101V2',
-#    'custom_19a'
-    'custom_x1'
+    'VGG16',
+    'VGG19',
+    'DenseNet121',
+    'MobileNetV3Small',
+    'ResNet101V2'
 ]
 
 def update_dirs(number):

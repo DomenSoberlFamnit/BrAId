@@ -1,9 +1,11 @@
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import json
 
 dir_braid = '/home/hicup/disk/braid/'
+dir_data = f'{dir_braid}data/'
 #dir_results = f'{dir_braid}results/'
 
 photos_subfolder = 'photos_test'
@@ -11,12 +13,14 @@ photos_subfolder = 'photos_test'
 full_confusion = {}
 groups = ["113", "1211", "122", "11", "22", "111", "112", "1112", "12", "1111", "123", "1212", "1222"]
 
-def process_folder(path, name, dir_results):
+def process_folder(path, name, dir_results, validation_set):
     global full_confusion
 
     matrices = {}
     correct = 0
     incorrect = 0
+
+    seen = []
 
     cnt = 0
     for _, _, files in os.walk(path):
@@ -24,8 +28,11 @@ def process_folder(path, name, dir_results):
             if file.endswith('.png'):
                 cnt += 1
                 parts = file.split('.')[0].split('_')
+                id = parts[0]
                 truth = parts[1]
                 predicted = parts[2]
+
+                seen.append(id)
 
                 if name == 'VGG16':
                     full_confusion[truth][predicted] += 1
@@ -42,6 +49,17 @@ def process_folder(path, name, dir_results):
                     incorrect += 1
                     matrices[predicted]['FP'] += 1
                     matrices[truth]['FN'] += 1
+
+    for id in validation_set:
+        truth = validation_set[id]
+        if truth in groups:
+            if id not in seen:
+                correct += 1
+                matrices[truth]['TP'] += 1
+                if name == 'VGG16':
+                    full_confusion[truth][truth] += 1
+                seen.append(id)
+
 
     #print(matrices.keys())
 
@@ -98,9 +116,9 @@ def process_folder(path, name, dir_results):
     plt.savefig(f'{dir_results}{name}/precision-recall.png')
     plt.close()
 
-    return correct, incorrect, 100*correct/(correct+incorrect), sum_precision/len(matrices), sum_recall/len(matrices), sum_f/len(matrices), matrix
+    return correct, 100*correct/(correct+incorrect), sum_precision/len(matrices), sum_recall/len(matrices), sum_f/len(matrices), matrix
 
-def process_results(number = None):
+def process_results(validation_set, number = None):
     if number is None:
         dir_results = f'{dir_braid}results/'
     else:
@@ -116,12 +134,12 @@ def process_results(number = None):
 
     for dir in os.listdir(dir_results):
         if os.path.isdir(f'{dir_results}{dir}') and os.path.exists(f'{dir_results}{dir}/{photos_subfolder}/'):
-            correct, incorrect, ca, precision, recall, f, matrix = process_folder(f'{dir_results}{dir}/{photos_subfolder}/', dir, dir_results)
+            correct, ca, precision, recall, f, matrix = process_folder(f'{dir_results}{dir}/{photos_subfolder}/', dir, dir_results, validation_set)
             results[dir] = {'matrix': matrix, 'CA':ca, 'precision': precision, 'recall': recall, 'F1': f}
             if number is None:
-                print(dir, correct, incorrect, ca, precision, recall, f)
+                print(dir, correct, ca, precision, recall, f)
             else:
-                print(number, dir, correct, incorrect, ca, precision, recall, f)
+                print(number, dir, correct, ca, precision, recall, f)
 
     with open(fname, "w") as outfile: 
         json.dump(results, outfile)
@@ -129,12 +147,27 @@ def process_results(number = None):
 def main():
     global full_confusion, groups
 
+    print("Loading testing_id.npy")
+    testing_id = np.load(f'{dir_data}testing_id.npy')
+
+    print("Loading testing_y.npy")
+    testing_y = np.load(f'{dir_data}testing_y.npy')
+
+    print("Collecting the validation set.")
+    validation_set = {}
+
+    for (id, y) in zip (testing_id, testing_y):
+        truth = groups[np.argmax(y)]
+        validation_set[str(id)] = truth
+
+    print(f'We have {len(validation_set)} validation instances.')
+
     for truth in groups:
         full_confusion[truth] = {}
         for prediction in groups:
             full_confusion[truth][prediction] = 0
 
-    process_results()
+    process_results(validation_set)
 
     #for i in range(10):
     #    process_results(i + 1)

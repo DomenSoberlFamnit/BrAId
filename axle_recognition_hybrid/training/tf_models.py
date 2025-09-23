@@ -6,7 +6,8 @@ import tensorflow as tf
 from dark_attention import DarkAttention, MaskLayer
 
 def VGG16(class_count):
-    model = applications.VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    model = applications.VGG16(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -21,7 +22,8 @@ def VGG16(class_count):
     return model
 
 def VGG19(class_count):
-    model = applications.VGG19(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.VGG19(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    model = applications.VGG19(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -36,7 +38,8 @@ def VGG19(class_count):
     return model
 
 def DenseNet121(class_count):
-    model = applications.DenseNet121(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.DenseNet121(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    model = applications.DenseNet121(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -51,7 +54,8 @@ def DenseNet121(class_count):
     return model
 
 def MobileNetV3Small(class_count):
-    model = applications.MobileNetV3Small(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.MobileNetV3Small(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    model = applications.MobileNetV3Small(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -66,7 +70,8 @@ def MobileNetV3Small(class_count):
     return model
 
 def ResNet101V2(class_count):
-    model = applications.ResNet101V2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    # model = applications.ResNet101V2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    model = applications.ResNet101V2(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -164,6 +169,37 @@ def custom_x2(class_count):
 
     x = conv_block(x, 512, convs=4, name="block4")
     x = MaxPool2D((2,2), strides=2, name='pool4')(x)
+
+    x = Flatten()(x)
+    x = Dense(512, activation='relu')(x)
+    x = Dropout(0.5)(x)
+    predictions = Dense(class_count, activation='softmax')(x)
+    
+    model = Model(inputs=img, outputs=predictions, name='custom')
+    
+    model.compile(optimizer=Adam(learning_rate=0.0001),
+                  loss='categorical_crossentropy', metrics=['accuracy'])
+
+    return model
+
+def custom_x3(class_count):
+    img = Input(shape=(224, 224, 3), name='input_layer')
+    x = Lambda(img_channel_scale)(img)
+    
+    x = conv_block(x, 64, convs=2, name="block1")
+    x = MaxPool2D((2,2), strides=2, name='pool1')(x)
+
+    x = conv_block(x, 128, convs=2, name="block2")
+    x = MaxPool2D((2,2), strides=2, name='pool2')(x)
+
+    x = conv_block(x, 256, convs=5, name="block3")
+    x = MaxPool2D((2,2), strides=2, name='pool3')(x)
+
+    x = conv_block(x, 512, convs=5, name="block4")
+    x = MaxPool2D((2,2), strides=2, name='pool4')(x)
+
+    x = conv_block(x, 512, convs=5, name="block5")
+    x = MaxPool2D((2,2), strides=2, name='pool5')(x)
 
     x = Flatten()(x)
     x = Dense(512, activation='relu')(x)
@@ -313,7 +349,8 @@ architectures = {
     'custom_mask1': custom_mask1,
     'custom_mask2': custom_mask2,
     'custom_x1': custom_x1,
-    'custom_x2': custom_x2
+    'custom_x2': custom_x2,
+    'custom_x3': custom_x3
 }
 
 def build_model(name, class_count):
