@@ -13,6 +13,8 @@ photos_subfolder = 'photos_test'
 full_confusion = {}
 groups = ["113", "1211", "122", "11", "22", "111", "112", "1112", "12", "1111", "123", "1212", "1222"]
 
+confidence = {}
+
 def process_folder(path, name, dir_results, validation_set):
     global full_confusion
 
@@ -31,8 +33,12 @@ def process_folder(path, name, dir_results, validation_set):
                 id = parts[0]
                 truth = parts[1]
                 predicted = parts[2]
+                probability = float(int(parts[3]) / 1000)
 
                 seen.append(id)
+
+                if name not in confidence:
+                    confidence[name] = {'true': [], 'false': []}
 
                 if name == 'VGG16':
                     full_confusion[truth][predicted] += 1
@@ -45,10 +51,12 @@ def process_folder(path, name, dir_results, validation_set):
                 if truth == predicted:
                     correct += 1
                     matrices[truth]['TP'] += 1
+                    confidence[name]['true'].append(probability)
                 else:
                     incorrect += 1
                     matrices[predicted]['FP'] += 1
                     matrices[truth]['FN'] += 1
+                    confidence[name]['false'].append(probability)
 
     for id in validation_set:
         truth = validation_set[id]
@@ -118,11 +126,8 @@ def process_folder(path, name, dir_results, validation_set):
 
     return correct, 100*correct/(correct+incorrect), sum_precision/len(matrices), sum_recall/len(matrices), sum_f/len(matrices), matrix
 
-def process_results(validation_set, number = None):
-    if number is None:
-        dir_results = f'{dir_braid}results/'
-    else:
-        dir_results = f'{dir_braid}results{number}/'
+def process_results(validation_set):
+    dir_results = f'{dir_braid}results/'
 
     fname = f'{dir_results}precision-recall.txt'
 
@@ -136,16 +141,15 @@ def process_results(validation_set, number = None):
         if os.path.isdir(f'{dir_results}{dir}') and os.path.exists(f'{dir_results}{dir}/{photos_subfolder}/'):
             correct, ca, precision, recall, f, matrix = process_folder(f'{dir_results}{dir}/{photos_subfolder}/', dir, dir_results, validation_set)
             results[dir] = {'matrix': matrix, 'CA':ca, 'precision': precision, 'recall': recall, 'F1': f}
-            if number is None:
-                print(dir, correct, ca, precision, recall, f)
-            else:
-                print(number, dir, correct, ca, precision, recall, f)
+            conf_true = np.array(confidence[dir]['true'])
+            conf_false = np.array(confidence[dir]['false'])
+            print(dir, correct, ca, precision, recall, f, np.mean(conf_true), np.std(conf_true), np.mean(conf_false), np.std(conf_false))
 
     with open(fname, "w") as outfile: 
         json.dump(results, outfile)
 
 def main():
-    global full_confusion, groups
+    global full_confusion, groups, confidence
 
     print("Loading testing_id.npy")
     testing_id = np.load(f'{dir_data}testing_id.npy')

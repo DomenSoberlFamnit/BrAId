@@ -13,6 +13,23 @@ year = 2014
 month = 3
 day = 10
 
+def time_seen(ts, times):
+    for t in times:
+        dt = abs(t - ts)
+        if dt <= 1.0:
+            return True
+    
+    return False
+
+print("Loading the metadata.")
+meta_id = []
+with h5py.File('../metadata/metadata.hdf5', 'r') as meta:
+    for groups in meta.keys():
+        data = meta[groups]
+        for id in data:
+            prop = json.loads(data[id].asstr()[()])
+            meta_id.append(str(id))
+
 print("Loading validation set.")
 with open(f'{dir_braid}validation_set.json', 'r') as f:
     validation_set = json.load(f)
@@ -39,7 +56,11 @@ print("Collecting instances.")
 distribution = {}
 distribution_labelled = {}
 
+times = []
+
 cnt = 0
+cnt_double = 0
+cnt_nometa = 0
 calendar = {}
 for vehicle in rv:
     id = str(vehicle['photo_id'])
@@ -53,6 +74,17 @@ for vehicle in rv:
     else:
         continue
     
+    if id not in meta_id:
+        cnt_nometa += 1
+        continue
+
+    if time_seen(ts, times):
+        cnt_double += 1
+        times.append(ts)
+        continue
+    
+    times.append(ts)
+
     if dt.hour not in distribution:
         distribution[dt.hour] = 0
     
@@ -64,7 +96,8 @@ for vehicle in rv:
     
         distribution_labelled[dt.hour] += 1
 
-
+print("No meta:", cnt_nometa)
+print("Doubled:", cnt_double)
 print(distribution)
 print(distribution_labelled)
 
