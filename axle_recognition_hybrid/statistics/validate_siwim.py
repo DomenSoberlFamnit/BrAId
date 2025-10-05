@@ -7,16 +7,20 @@ import numpy as np
 import pandas as pd
 
 dir_braid = '/home/hicup/disk/braid/'
+#dir_braid = '/home/hicup/disk/res-noaug-50/'
+#dir_braid = '/home/hicup/disk/braid-val1/'
+#dir_braid = '/home/hicup/disk/res_val/'
 dir_data = f'{dir_braid}data/'
 
 use_architectures = ['VGG19', 'VGG16', 'ResNet101V2', 'DenseNet121', 'MobileNetV3Small']
-use_groups = ['1111', '1112', '111', '22', '1222', '113', '123', '122', '1211', '11', '1212', '112', '12']
+use_groups = ["113", "1211", "122", "11", "22", "111", "112", "1112", "12", "1111", "123", "1212", "1222"]
 
 def remove_raised_axles(truth_camera, raised_axles):
     raised_groups = list(truth_camera)   # String to list of characters.
     for axle in raised_axles.split(','): # For each group with a raised axle.
         idx = int(axle) - 1              # The index of the group with a raised axle.
-        raised_groups[idx] = str(int(raised_groups[idx]) - 1) # Remove the raised axle.
+        if idx < len(raised_groups):
+            raised_groups[idx] = str(int(raised_groups[idx]) - 1) # Remove the raised axle.
     return ''.join(raised_groups)
 
 def process_architecture(architecture, validation_set, siwim_groups, meta_index, include_raised):
@@ -24,34 +28,54 @@ def process_architecture(architecture, validation_set, siwim_groups, meta_index,
     nn_results = {}
 
     path = f'{dir_braid}results/{architecture}/photos_test/'
+    #path = f'{dir_braid}results/'
     for (_, _, files) in os.walk(path):
         for file in files:
             if file.endswith('.png'):
                 parts = file.split('.')[0].split('_')
+                if len(parts) < 3:
+                    continue
                 id = parts[0]
                 truth = parts[1]
                 prediction = parts[2]
-                
-                nn_results[id] = {'truth':truth, 'prediction':prediction}
 
+                if id in nn_results:
+                    truth1 = nn_results[id]['truth']
+                    if truth1 != truth:
+                        if truth != validation_set[id]:
+                            nn_results[id] = {'truth':truth, 'prediction':prediction}
+                else:
+                    nn_results[id] = {'truth':truth, 'prediction':prediction}
+
+    invalid = 0
     for id in validation_set:
         if id not in nn_results:
             truth = validation_set[id]
-            nn_results[id] = {'truth':truth, 'prediction':truth}
+            nn_results[id] = {'truth':truth, 'prediction':prediction}
+            invalid += 1
 
     if include_raised:
         f = open(f'siwim_validation_{architecture}.csv', 'w')
     else:
         f = open(f'siwim_validation_{architecture}_no_raised.csv', 'w')
-    f.write('ID,RP1,RP2,RP3,CAMERA,ROAD,RAISED,IS_RAISED,RP1_CORRECT,RP2_CORRECT,RP3_CORRECT')
+    f.write('ID,RP1,RP2,RP3,CAMERA,ROAD,RAISED,IS_RAISED,RP1_CORRECT,RP2_CORRECT,RP3_CORRECT,')
     f.write('NN_TRUTH,NN_PREDICTION,NN_CA,AGREE,TP,TN,FP,FN\n')
 
     tp_cnt = 0
     tn_cnt = 0
     fp_cnt = 0
     fn_cnt = 0
+    cnt = 0
+
+    rp2corr_cnt = 0
+    rp2err_cnt = 0
 
     for id in validation_set:
+        if id not in nn_results:
+            continue
+
+        cnt += 1
+
         nn_truth = nn_results[id]['truth']
         nn_prediction = nn_results[id]['prediction']
 
@@ -80,6 +104,10 @@ def process_architecture(architecture, validation_set, siwim_groups, meta_index,
         rp2corr = 1 if rp2 == truth_road else 0
         rp3corr = 1 if rp3 == truth_road else 0
 
+        rp2corr_cnt += rp2corr
+        if rp2corr == 0:
+            rp2err_cnt += 1
+
         nn_ca = 1 if nn_truth == nn_prediction else 0
         agree = 1 if rp2 == nn_prediction else 0
 
@@ -99,15 +127,17 @@ def process_architecture(architecture, validation_set, siwim_groups, meta_index,
 
         raised_axles = raised_axles.replace(',', ' ')
 
-        f.write(f"{id},{rp1},{rp2},{rp3},{truth_camera},{truth_road},{raised_axles},{is_raised},{rp1corr},{rp2corr},{rp3corr}")
+        f.write(f"{id},{rp1},{rp2},{rp3},{truth_camera},{truth_road},{raised_axles},{is_raised},{rp1corr},{rp2corr},{rp3corr},")
         f.write(f"{nn_truth},{nn_prediction},{nn_ca},{agree},{tp},{tn},{fp},{fn}\n")
 
     f.close()
 
     precision = tp_cnt / (tp_cnt + fp_cnt)
     recall = tp_cnt / (tp_cnt + fn_cnt)
+    ca = (tp_cnt + tn_cnt) / cnt
 
-    print(f'TP: {tp_cnt}, TN: {tn_cnt}, FP: {fp_cnt}, FN: {fn_cnt}, precision: {precision}, recall: {recall}')
+    print(f'TP: {tp_cnt}, TN: {tn_cnt}, FP: {fp_cnt}, FN: {fn_cnt}, CA: {ca}, precision: {precision}, recall: {recall}')
+    print("RP2 correct", rp2corr_cnt, rp2err_cnt, rp2corr_cnt + rp2err_cnt, rp2corr_cnt / (rp2corr_cnt + rp2err_cnt) * 100 , invalid)
 
 def main():
     print("Loading testing_id.npy")
@@ -145,7 +175,7 @@ def main():
     for architecture in use_architectures:
         print(f"Processing {architecture}.")
         process_architecture(architecture, validation_set, siwim_groups, meta_index, True)
-        process_architecture(architecture, validation_set, siwim_groups, meta_index, False)
+        # process_architecture(architecture, validation_set, siwim_groups, meta_index, False)
 
 if __name__ == "__main__":
     main()

@@ -4,7 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 
-dir_braid = '/home/hicup/disk/braid/'
+dir_braid = '/home/hicup/disk/res-noaug-50/'
+#dir_braid = '/home/hicup/disk/braid-val1/'
 dir_data = f'{dir_braid}data/'
 #dir_results = f'{dir_braid}results/'
 
@@ -25,9 +26,10 @@ def process_folder(path, name, dir_results, validation_set):
     seen = []
 
     cnt = 0
-    for _, _, files in os.walk(path):
+    for dirs, _, files in os.walk(path):
         for file in files:
             if file.endswith('.png'):
+                fullpath = os.path.join(dirs, file)
                 cnt += 1
                 parts = file.split('.')[0].split('_')
                 id = parts[0]
@@ -40,7 +42,7 @@ def process_folder(path, name, dir_results, validation_set):
                 if name not in confidence:
                     confidence[name] = {'true': [], 'false': []}
 
-                if name == 'VGG16':
+                if name == 'ResNet101V2':
                     full_confusion[truth][predicted] += 1
 
                 if not truth in matrices:

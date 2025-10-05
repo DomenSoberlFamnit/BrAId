@@ -6,8 +6,8 @@ import tensorflow as tf
 from dark_attention import DarkAttention, MaskLayer
 
 def VGG16(class_count):
-    #model = applications.VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    model = applications.VGG16(weights=None, include_top=False, input_shape=(224, 224, 3))
+    model = applications.VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.VGG16(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -22,8 +22,8 @@ def VGG16(class_count):
     return model
 
 def VGG19(class_count):
-    #model = applications.VGG19(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    model = applications.VGG19(weights=None, include_top=False, input_shape=(224, 224, 3))
+    model = applications.VGG19(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.VGG19(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -38,8 +38,8 @@ def VGG19(class_count):
     return model
 
 def DenseNet121(class_count):
-    #model = applications.DenseNet121(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    model = applications.DenseNet121(weights=None, include_top=False, input_shape=(224, 224, 3))
+    model = applications.DenseNet121(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.DenseNet121(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -54,8 +54,8 @@ def DenseNet121(class_count):
     return model
 
 def MobileNetV3Small(class_count):
-    #model = applications.MobileNetV3Small(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    model = applications.MobileNetV3Small(weights=None, include_top=False, input_shape=(224, 224, 3))
+    model = applications.MobileNetV3Small(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.MobileNetV3Small(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)
@@ -70,8 +70,8 @@ def MobileNetV3Small(class_count):
     return model
 
 def ResNet101V2(class_count):
-    # model = applications.ResNet101V2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    model = applications.ResNet101V2(weights=None, include_top=False, input_shape=(224, 224, 3))
+    model = applications.ResNet101V2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    #model = applications.ResNet101V2(weights=None, include_top=False, input_shape=(224, 224, 3))
     
     x = model.output
     x = Flatten()(x)

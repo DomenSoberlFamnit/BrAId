@@ -207,7 +207,7 @@ def process_for_stage(siwim_stage=None):
     f.write(f'groups,precision,recall,F1\n')
     for groups in stat:
         values = stat[groups]
-        f.write(f'{groups},{values['precision']},{values['recall']},{values['F1']}\n')
+        f.write(f"{groups},{values['precision']},{values['recall']},{values['F1']}\n")
     f.write(f'AVERAGE,{precision},{recall},{f1}\n')
     f.close()
 

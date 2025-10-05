@@ -15,7 +15,7 @@ dir_braid = '/home/hicup/disk/braid/'
 dir_models = f'{dir_braid}models/'
 dir_results = f'{dir_braid}results/'
 
-epochs = 20
+epochs = 50
 sample_count = 0
 
 
@@ -80,6 +80,7 @@ def train(model, name, epoch, train_x, train_y, testing_x, testing_y, gpu_capaci
 
     for (idx_from, idx_to, _) in slot_indices(gpu_capacity, len(train_x)):
         batch_x = alter_batch(train_x[idx_from:idx_to])
+        # batch_x = train_x[idx_from:idx_to]
 
         time_start = timer()
         history = model.fit(x=batch_x, y=train_y[idx_from:idx_to],
