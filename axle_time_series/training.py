@@ -29,7 +29,7 @@ def train_mlp(sample_size, architecture, X, Y):
         X, Y,
         epochs=100,
         batch_size=32,
-        # validation_split=0.2,
+        validation_split=0.2,
         callbacks=[early_stop],
         verbose=1
     )
@@ -64,7 +64,7 @@ def train_cnn(sample_size, X, Y):
         X, Y,
         epochs=200,
         batch_size=32,
-        #validation_split=0.2,
+        validation_split=0.2,
         callbacks=[early_stop],
         verbose=1
     )

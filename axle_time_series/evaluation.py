@@ -32,30 +32,84 @@ def plot_sample(filename, signal, pulses, prediction):
     plt.savefig(filename)
     plt.close()
 
-def count_axles(sample):
-    cnt = 0
-    for values in sample:
-        pass
+def sharpen_prediction(prediction):
+    pulses = []
 
-def evaluate(model, X, Y):
-    print("Evaluating the model.")
-    predictions = model.predict(X)
+    max = 0
+    idx = 0
+    for i, p in enumerate(prediction):
+        value = round(p, 2)
 
-    #file = open("results.txt", "w")
+        if value == 0:
+            if max != 0:
+                pulses.append((idx, max))
+            max = 0
+        else:
+            if value > max:
+                max = value
+                idx = i
+            
+    sharp = np.zeros(len(prediction))
 
-    cnt = 0
-    for (signal, pulses, prediction) in zip (X, Y, predictions):
-        if cnt % 10 != 0:
-            cnt += 1
+    for (idx, max) in pulses:
+        sharp[idx] = max
+    
+    return sharp
+
+def sample_accuracy(pulses, prediction, class_threshold, kernel_size):
+    tp, fn, fp = 0, 0, 0
+
+    places_checked = []
+
+    # Iterate through the pulses, find TP and FN.
+    for i, p in enumerate(pulses):
+        value = round(p, 2)
+
+        # If found a pulse.
+        if value > 0.5:  # == 1.0 should also work.
+            # Check the neighborhood (kernel).
+            hit = False
+            for j in range(kernel_size):
+                idx = i + j - int(kernel_size/2)
+                if prediction[idx] >= class_threshold:
+                    hit = True
+                places_checked.append(idx)
+
+            if hit:
+                tp += 1
+            else:
+                fn += 1
+
+    # Find FP
+    for i, p in enumerate(prediction):
+        if i in places_checked:
             continue
 
-        plot_sample(f'validation_{cnt}.png', signal, pulses, prediction)
-
-        #file.write(f'{cnt}')
-        #for p in prediction:
-        #    file.write(f',{p}')
-        #file.write('\n')
-
-        cnt += 1
+        value = round(p, 2)
+        if value >= class_threshold:
+            fp += 1
     
-    #file.close()
+    return tp, fn, fp
+
+def sample_thresholds(pulses, prediction, kernel_size):
+    thrs_t = []
+    thrs_f = []
+   
+    for i, p in enumerate(prediction):
+        value = round(p, 2)
+
+        if value == 0:
+            continue
+            
+        hit = False
+        for j in range(kernel_size):
+            idx = i + j - int(kernel_size/2)
+            if pulses[idx] >= 0.5:  # == 1.0 should also work.
+                hit = True
+        
+        if hit:
+            thrs_t.append(value)
+        else:
+            thrs_f.append(value)
+    
+    return thrs_t, thrs_f

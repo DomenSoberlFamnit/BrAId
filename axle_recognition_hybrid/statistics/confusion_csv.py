@@ -1,5 +1,7 @@
 groups = ["113", "1211", "122", "11", "22", "111", "112", "1112", "12", "1111", "123", "1212", "1222"]
 
+matrix_all = {}
+
 def print_matrix(matrix):
     #groups = []
     #for truth in matrix.keys():
@@ -36,11 +38,13 @@ def print_errors(matrix, threshold):
                     print(f'{truth} -> {prediction}: {cnt}')
 
 def process_file(filename):
+    global matrix_all
+
     confusion_siwim = {}
     confusion_nn = {}
 
     print(filename)
-    f = open(filename, 'r')
+    f = open(f'../results/{filename}', 'r')
 
     raised_cnt = 0
     errors = {}
@@ -75,19 +79,27 @@ def process_file(filename):
         
         confusion_nn[camera][nn] += 1
 
+        if camera not in matrix_all:
+            matrix_all[camera] = {}
+        
+        if nn not in matrix_all[camera]:
+            matrix_all[camera][nn] = 0
+        
+        matrix_all[camera][nn] += 1
+
         if camera != nn:
             if camera not in errors:
                 errors[camera] = 0
             errors[camera] += 1
 
-    print_matrix(confusion_siwim)
-    print()
+    #print_matrix(confusion_siwim)
+    #print()
 
-    print_matrix(confusion_nn)
-    print()
-    print_errors(confusion_nn, 5)
+    #print_matrix(confusion_nn)
+    #print()
+    #print_errors(confusion_nn, 1)
 
-    print("Raised:", raised_cnt)
+    #print("Raised:", raised_cnt)
 
     f.close()
 
@@ -96,3 +108,5 @@ files = ['stat-vgg16.csv', 'stat-vgg19.csv', 'stat-densenet.csv', 'stat-mobilene
 for file in files:
     process_file(file)
     print("---------------------------------")
+
+print_matrix(matrix_all)

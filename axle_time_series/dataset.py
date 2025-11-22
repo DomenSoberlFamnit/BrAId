@@ -1,8 +1,24 @@
+import os
 import numpy as np
 import json
 import h5py
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+
+def signal_data_found(dir_braid):
+    if os.path.exists(f'{dir_braid}data/nn_signals.hdf5'):
+        print('Found file nn_signals.hdf5')
+    else:
+        print('File nn_signals.hdf5 not found!')
+        return False
+
+    if os.path.exists(f'{dir_braid}data/nn_pulses.json'):
+        print('Found file nn_pulses.json')
+    else:
+        print('File nn_pulses.json not found!')
+        return False
+    
+    return True
 
 def generate_training_samples(dir_braid, signal_size, signal_name):
     print(f'Generating the training dataset for signal {signal_name}.')
@@ -15,8 +31,8 @@ def generate_training_samples(dir_braid, signal_size, signal_name):
     axle_groups = []
     timestamps = []
 
-    with h5py.File(f'{dir_braid}signals/nn_signals.hdf5', 'r') as signals:
-        with open(f'{dir_braid}signals/nn_pulses.json', 'r') as file:
+    with h5py.File(f'{dir_braid}data/nn_signals.hdf5', 'r') as signals:
+        with open(f'{dir_braid}data/nn_pulses.json', 'r') as file:
             pulses = json.load(file)
 
         cnt = 0
@@ -65,33 +81,95 @@ def generate_training_samples(dir_braid, signal_size, signal_name):
         print(f'Signal lengths are between {np.min(lengths)} and {np.max(lengths)}.')
         print(f'Pulses are located between {np.min(locations)} and {np.max(locations)}.')
 
-        print(f'Saving {dir_braid}signals_training_x.npy')
-        np.save(f'{dir_braid}signals_training_x.npy', X)
+        print(f'Saving {dir_braid}signals_x.npy')
+        np.save(f'{dir_braid}signals_x.npy', X)
         
-        print(f'Saving {dir_braid}signals_training_y.npy')
-        np.save(f'{dir_braid}signals_training_y.npy', Y)
+        print(f'Saving {dir_braid}signals_y.npy')
+        np.save(f'{dir_braid}signals_y.npy', Y)
 
         return X, Y, timestamps, axle_groups
 
-def load_training_samples(dir_braid):
-    print('Loading training samples.')
-    X = np.load(f'{dir_braid}signals_training_x.npy')
-    Y = np.load(f'{dir_braid}signals_training_y.npy')
+def load_samples(dir_braid):
+    # Check if the samples set exists.
+    training_set_found = True
+    if os.path.exists(f'{dir_braid}/signals_x.npy'):
+        print('Found signals_x.npy')
+    else:
+        print('File signals_x.npy has not been found.')
+        training_set_found = False
 
-    return X, Y
+    if os.path.exists(f'{dir_braid}/signals_y.npy'):
+        print('Found signals_y.npy')
+    else:
+        print('File signals_y.npy has not been found.')
+        training_set_found = False
+
+    if training_set_found:
+        print('Loading samples.')
+        X = np.load(f'{dir_braid}signals_x.npy')
+        Y = np.load(f'{dir_braid}signals_y.npy')
+        return X, Y
+    
+    return None
+
+def load_training_samples(dir_braid):
+    # Check if the training set exists.
+    training_set_found = True
+    if os.path.exists(f'{dir_braid}/signals_training_x.npy'):
+        print('Found signals_training_x.npy')
+    else:
+        print('File signals_training_x.npy has not been found.')
+        training_set_found = False
+
+    if os.path.exists(f'{dir_braid}/signals_training_y.npy'):
+        print('Found signals_training_y.npy')
+    else:
+        print('File signals_training_y.npy has not been found.')
+        training_set_found = False
+
+    if training_set_found:
+        print('Loading training samples.')
+        X = np.load(f'{dir_braid}signals_training_x.npy')
+        Y = np.load(f'{dir_braid}signals_training_y.npy')
+        return X, Y
+    
+    return None
+
+def load_validation_samples(dir_braid):
+    # Check if the training set exists.
+    validation_set_found = True
+    if os.path.exists(f'{dir_braid}/signals_validation_x.npy'):
+        print('Found signals_validation_x.npy')
+    else:
+        print('File signals_validation_x.npy has not been found.')
+        validation_set_found = False
+
+    if os.path.exists(f'{dir_braid}/signals_validation_y.npy'):
+        print('Found signals_validation_y.npy')
+    else:
+        print('File signals_validation_y.npy has not been found.')
+        validation_set_found = False
+
+    if validation_set_found:
+        print('Loading validation samples.')
+        X = np.load(f'{dir_braid}signals_validation_x.npy')
+        Y = np.load(f'{dir_braid}signals_validation_y.npy')
+        return X, Y
+    
+    return None
 
 def split_samples(X, Y, validation_size=0.2):
     indices = np.arange(0, len(X))
     indices = np.random.permutation(indices)
     split_idx = round(len(X) * validation_size)
-    train_idx = indices[0:split_idx]
-    validate_idx = indices[split_idx:]
+    validate_idx = indices[0:split_idx]
+    train_idx = indices[split_idx:]
 
     X_train = X[train_idx]
     Y_train = Y[train_idx]
     X_validate = X[validate_idx]
     Y_validate = Y[validate_idx]
-    
+
     return X_train, Y_train, X_validate, Y_validate
 
 def plot_sample(filename, signal, pulses, timestamp, axle_groups):
