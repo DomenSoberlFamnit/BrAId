@@ -58,6 +58,8 @@ def sharpen_prediction(prediction):
 
 def sample_accuracy(pulses, prediction, class_threshold, kernel_size):
     tp, fn, fp = 0, 0, 0
+    n = 0
+    error = 0
 
     places_checked = []
 
@@ -68,17 +70,17 @@ def sample_accuracy(pulses, prediction, class_threshold, kernel_size):
         # If found a pulse.
         if value > 0.5:  # == 1.0 should also work.
             # Check the neighborhood (kernel).
-            hit = False
-            for j in range(kernel_size):
-                idx = i + j - int(kernel_size/2)
-                if prediction[idx] >= class_threshold:
-                    hit = True
-                places_checked.append(idx)
+            epsilon = int(kernel_size / 2)
+            max_prediction = np.max(prediction[(i - epsilon):(i + epsilon + 1)])
+            places_checked = list(set(places_checked + list(range(i - epsilon, i + epsilon + 1))))
 
-            if hit:
+            if max_prediction >= class_threshold:
                 tp += 1
             else:
                 fn += 1
+            
+            n += 1
+            error += abs(max_prediction - value)
 
     # Find FP
     for i, p in enumerate(prediction):
@@ -88,8 +90,11 @@ def sample_accuracy(pulses, prediction, class_threshold, kernel_size):
         value = round(p, 2)
         if value >= class_threshold:
             fp += 1
+        
+        error += abs(value)
+        n += 1
     
-    return tp, fn, fp
+    return tp, fn, fp, (error / n)
 
 def sample_thresholds(pulses, prediction, kernel_size):
     thrs_t = []

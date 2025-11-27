@@ -24,3 +24,14 @@ def plot_sample(filename, signal, pulses, prediction):
 
     plt.savefig(filename)
     plt.close()
+
+def plot_frame(filename, frame, pulse, miny, maxy):
+    fig, ax = plt.subplots()
+    plt.ylim(miny, maxy)
+    ax.plot(frame)
+    ax.vlines(x=int(len(frame) / 2), ymin=0, ymax=pulse, color='r', linewidth=3)
+
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(8))
+
+    plt.savefig(filename)
+    plt.close()

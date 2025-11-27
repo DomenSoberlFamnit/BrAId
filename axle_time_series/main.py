@@ -2,16 +2,24 @@ import os
 import numpy as np
 
 import dataset
+import baseline
 import models
 
-dir_braid = '/home/hicup/disk/braid/'
+dir_braid = '/mnt/workspace/braid/workdir/'
 input_signal = '11admp'
+
+normalized_signals = True
+signal_length = 1300 if normalized_signals else 2048 
 
 ########################################   Data preparation   ########################################
 
 # Check if the database can be opened.
-if not dataset.signal_data_found(dir_braid):
+if not dataset.signal_data_found(dir_braid, normalized_signals):
     quit()
+
+# Analyze the dataset.
+base_ca = baseline.accuracy(dir_braid, normalized_signals)
+print(f'Baseline accuracy: {100 * base_ca:.2f}')
 
 # Try to load the training set and the validation set.
 training_set = dataset.load_training_samples(dir_braid)
@@ -23,7 +31,7 @@ if training_set is None or validation_set is None:
 
     # If samples cannot be loaded, generate them.
     if samples is None:
-        X, Y, timestamps, axle_groups = dataset.generate_training_samples(dir_braid, 2048, input_signal)
+        X, Y, timestamps, axle_groups = dataset.generate_training_samples(dir_braid, signal_length, input_signal, normalized_signals)
 
         print('Plotting the training data.')
         if not os.path.exists(f'{dir_braid}plots/raw/'):
@@ -65,12 +73,25 @@ print(f'The number of validation samples: {len(X_validate)}')
 
 ########################################   Evaluate MLP   ########################################
 
-model = models.MlpRaw(dir_braid, 2048, [8192, 4096])
-model.print()
+# MLP Raw
+if False:
+    model = models.MlpRaw(dir_braid, signal_length, [8192, 4096])
+    model.print()
 
-if not model.load():
-    model.train(X_train, Y_train)
-    model.save()
+    if not model.load():
+        model.train(X_train, Y_train)
+        model.save()
 
-model.evaluate(X_validate, Y_validate, class_threshold=0.1, kernel_size=7, plots=True)
+    model.evaluate(X_validate, Y_validate, class_threshold=0.1, kernel_size=7, plots=True)
+
+# MLP Frame
+if True:
+    model = models.MlpFrames(dir_braid, 64, [8192, 4096])
+    model.print()
+
+    if not model.load():
+        model.train(X_train, Y_train)
+        model.save()
+
+    model.evaluate(X_validate, Y_validate, class_threshold=0.1, kernel_size=7, plots=True)
 
