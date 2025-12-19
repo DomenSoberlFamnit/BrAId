@@ -32,29 +32,23 @@ def plot_sample(filename, signal, pulses, prediction):
     plt.savefig(filename)
     plt.close()
 
-def sharpen_prediction(prediction):
-    pulses = []
+def max_filter(signal, threshold, kernel_size):
+    filtered = signal.copy()
 
-    max = 0
-    idx = 0
-    for i, p in enumerate(prediction):
-        value = round(p, 2)
+    eps = int(kernel_size / 2)
+    for i in range(len(signal)):
+        start = max(0, i - eps)
+        end = min(i + eps, len(signal))
 
-        if value == 0:
-            if max != 0:
-                pulses.append((idx, max))
-            max = 0
-        else:
-            if value > max:
-                max = value
-                idx = i
-            
-    sharp = np.zeros(len(prediction))
+        kernel = filtered[start:end]
+        idx_max = np.argmax(kernel)
+        max_value = kernel[idx_max]
 
-    for (idx, max) in pulses:
-        sharp[idx] = max
+        filtered[start:end] = 0
+        if max_value >= threshold:
+            filtered[start + idx_max] = max_value
     
-    return sharp
+    return filtered
 
 def sample_accuracy(pulses, prediction, class_threshold, kernel_size):
     tp, fn, fp = 0, 0, 0

@@ -44,6 +44,9 @@ def generate_training_samples(dir_braid, signal_length, signal_name, normalized_
     locations = []
     axle_groups = []
     timestamps = []
+    meta = []
+
+    min_dist = 1000000
 
     with h5py.File(f'{dir_braid}data/{fname_signals}', 'r') as signals:
         with open(f'{dir_braid}data/{fname_pulses}', 'r') as file:
@@ -64,10 +67,14 @@ def generate_training_samples(dir_braid, signal_length, signal_name, normalized_
             timestamps.append(ts)
             axle_groups.append(pulse['vehicle']['final']['axle_groups'])
 
+            # Store metadata.
+            meta.append([pulse['ts'], pulse['vehicle']['final']['axle_groups']])
+
             # Construct matrix X.
             raw_signal = np.array(signals[ts][signal_name])
+            
+            # Length of the signal.
             raw_size = len(raw_signal)
-
             lengths.append(raw_size)
 
             offset = int((signal_length - raw_size) / 2)
@@ -84,19 +91,30 @@ def generate_training_samples(dir_braid, signal_length, signal_name, normalized_
             # Construct matrix Y.
             raw_pulses = pulse['vehicle']['detected']['axle_pulses']
 
+            # Min distances between pulses.
+            for i in range(len(raw_pulses) - 1):
+                dist = raw_pulses[i + 1] - raw_pulses[i]
+                if dist < min_dist:
+                    min_dist = dist
+
             pulses = np.zeros(signal_length)
             for location in raw_pulses:
                 pulses[location+offset] = 1
                 locations.append(location+offset)
-        
+
             Y.append(pulses)
         
+        meta = np.array(meta)
         X = np.array(X)
         Y = np.array(Y)
 
         print(f'Found {cnt} training samples.')
         print(f'Signal lengths are between {np.min(lengths)} and {np.max(lengths)}.')
         print(f'Pulses are located between {np.min(locations)} and {np.max(locations)}.')
+        print(f'Minimal distance between pulses is {min_dist}.')
+
+        print(f'Saving {dir_braid}meta.npy')
+        np.save(f'{dir_braid}meta.npy', X)
 
         print(f'Saving {dir_braid}signals_x.npy')
         np.save(f'{dir_braid}signals_x.npy', X)
@@ -104,90 +122,114 @@ def generate_training_samples(dir_braid, signal_length, signal_name, normalized_
         print(f'Saving {dir_braid}signals_y.npy')
         np.save(f'{dir_braid}signals_y.npy', Y)
 
-        return X, Y, timestamps, axle_groups
+        return meta, X, Y
 
 def load_samples(dir_braid):
     # Check if the samples set exists.
-    training_set_found = True
+    data_found = True
+    if os.path.exists(f'{dir_braid}/meta.npy'):
+        print('Found meta.npy')
+    else:
+        print('File meta.npy has not been found.')
+        data_found = False
+
     if os.path.exists(f'{dir_braid}/signals_x.npy'):
         print('Found signals_x.npy')
     else:
         print('File signals_x.npy has not been found.')
-        training_set_found = False
+        data_found = False
 
     if os.path.exists(f'{dir_braid}/signals_y.npy'):
         print('Found signals_y.npy')
     else:
         print('File signals_y.npy has not been found.')
-        training_set_found = False
+        data_found = False
 
-    if training_set_found:
+    if data_found:
         print('Loading samples.')
+        meta = np.load(f'{dir_braid}meta.npy')
         X = np.load(f'{dir_braid}signals_x.npy')
         Y = np.load(f'{dir_braid}signals_y.npy')
-        return X, Y
+        return meta, X, Y
     
     return None
 
 def load_training_samples(dir_braid):
     # Check if the training set exists.
-    training_set_found = True
+    data_found = True
+    if os.path.exists(f'{dir_braid}/meta_training.npy'):
+        print('Found meta_training.npy')
+    else:
+        print('File meta_training.npy has not been found.')
+        data_found = False
+    
     if os.path.exists(f'{dir_braid}/signals_training_x.npy'):
         print('Found signals_training_x.npy')
     else:
         print('File signals_training_x.npy has not been found.')
-        training_set_found = False
+        data_found = False
 
     if os.path.exists(f'{dir_braid}/signals_training_y.npy'):
         print('Found signals_training_y.npy')
     else:
         print('File signals_training_y.npy has not been found.')
-        training_set_found = False
+        data_found = False
 
-    if training_set_found:
+    if data_found:
         print('Loading training samples.')
+        meta = np.load(f'{dir_braid}meta_training.npy')
         X = np.load(f'{dir_braid}signals_training_x.npy')
         Y = np.load(f'{dir_braid}signals_training_y.npy')
-        return X, Y
+        return meta, X, Y
     
     return None
 
-def load_validation_samples(dir_braid):
+def load_testing_samples(dir_braid):
     # Check if the training set exists.
-    validation_set_found = True
-    if os.path.exists(f'{dir_braid}/signals_validation_x.npy'):
-        print('Found signals_validation_x.npy')
+    data_found = True
+    if os.path.exists(f'{dir_braid}/meta_testing.npy'):
+        print('Found meta_testing.npy')
     else:
-        print('File signals_validation_x.npy has not been found.')
-        validation_set_found = False
-
-    if os.path.exists(f'{dir_braid}/signals_validation_y.npy'):
-        print('Found signals_validation_y.npy')
+        print('File meta_testing.npy has not been found.')
+        data_found = False
+    
+    if os.path.exists(f'{dir_braid}/signals_testing_x.npy'):
+        print('Found signals_testing_x.npy')
     else:
-        print('File signals_validation_y.npy has not been found.')
-        validation_set_found = False
+        print('File signals_testing_x.npy has not been found.')
+        data_found = False
 
-    if validation_set_found:
-        print('Loading validation samples.')
-        X = np.load(f'{dir_braid}signals_validation_x.npy')
-        Y = np.load(f'{dir_braid}signals_validation_y.npy')
-        return X, Y
+    if os.path.exists(f'{dir_braid}/signals_testing_y.npy'):
+        print('Found signals_testing_y.npy')
+    else:
+        print('File signals_testing_y.npy has not been found.')
+        data_found = False
+
+    if data_found:
+        print('Loading test samples.')
+        meta = np.load(f'{dir_braid}meta_testing.npy')
+        X = np.load(f'{dir_braid}signals_testing_x.npy')
+        Y = np.load(f'{dir_braid}signals_testing_y.npy')
+        return meta, X, Y
     
     return None
 
-def split_samples(X, Y, validation_size=0.2):
+def split_samples(meta, X, Y, testing_size=0.2):
     indices = np.arange(0, len(X))
     indices = np.random.permutation(indices)
-    split_idx = round(len(X) * validation_size)
-    validate_idx = indices[0:split_idx]
+    split_idx = round(len(X) * testing_size)
+    testing_idx = indices[0:split_idx]
     train_idx = indices[split_idx:]
 
+    meta_train = meta[train_idx]
     X_train = X[train_idx]
     Y_train = Y[train_idx]
-    X_validate = X[validate_idx]
-    Y_validate = Y[validate_idx]
+    
+    meta_test = meta[testing_idx]
+    X_test = X[testing_idx]
+    Y_test = Y[testing_idx]
 
-    return X_train, Y_train, X_validate, Y_validate
+    return meta_train, X_train, Y_train, meta_test, X_test, Y_test
 
 def plot_sample(filename, signal, pulses, timestamp, axle_groups):
     bars = []
@@ -253,11 +295,11 @@ def signal_from_frames(frames):
     frame_size = len(frame)
     signal_focus = int(frame_size / 2)
 
-    signal = []
-    pulses = []
+    signal = np.zeros(signal_length)
+    pulses = np.zeros(signal_length)
 
-    for (x, y) in frames:
-        signal.append(x[signal_focus])
-        pulses.append(y)
+    for i, (x, y) in enumerate(frames):
+        signal[i] = (x[signal_focus])
+        pulses[i] = y[0]
     
-    return np.array(signal), np.array(pulses)
+    return signal, pulses

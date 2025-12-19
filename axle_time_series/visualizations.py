@@ -4,25 +4,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-def plot_sample(filename, signal, pulses, prediction):
+def plot_prediction(filename, signal, pulses, prediction, comment=''):
     bars = []
-    cnt = 0
-    for pulse in pulses:
+    for i, pulse in enumerate(pulses):
         if pulse > 0:
-            bars.append(cnt)
-        cnt += 1
+            bars.append(i)
 
     maxy = np.max(signal)
 
-    fig, ax = plt.subplots()
-    ax.plot(signal)
-    ax.plot(prediction * maxy/10)
-    ax.vlines(x=[x for x in bars], ymin=-maxy/10, ymax=0, color='r')
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.plot(signal, color='b')
+    ax.plot(prediction * maxy/10, color='m')
+    ax.vlines(x=[x for x in bars], ymin=-maxy/10, ymax=0, color='g')
     ax.axhline(color='k', linewidth=0.5, linestyle='--')
 
     ax.xaxis.set_major_locator(ticker.MultipleLocator(512))
 
-    plt.savefig(filename)
+    ax.text(0, 1.1 * maxy, comment, fontsize=10, color="black")
+
+    plt.savefig(filename, dpi=300)
     plt.close()
 
 def plot_frame(filename, frame, pulse, miny, maxy):
