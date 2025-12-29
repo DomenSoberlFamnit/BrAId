@@ -38,7 +38,7 @@ def max_filter(signal, threshold, kernel_size):
     eps = int(kernel_size / 2)
     for i in range(len(signal)):
         start = max(0, i - eps)
-        end = min(i + eps, len(signal))
+        end = min(i + eps + 1, len(signal))
 
         kernel = filtered[start:end]
         idx_max = np.argmax(kernel)

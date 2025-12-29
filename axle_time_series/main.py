@@ -5,6 +5,8 @@ import dataset
 import baseline
 from models.mlp_raw import MlpRaw
 from models.mlp_frames_one import MlpFramesOne
+from models.tcn import TCN
+from models.cnn import CNN
 
 from progress.bar import Bar
 
@@ -15,9 +17,9 @@ normalized_signals = True
 signal_length = 1300 if normalized_signals else 2048 
 
 plot_data = False
-force_training = False
+force_training = True
 
-########################################   Data preparation   ########################################
+#####################= self._model.evaluate(X, Y, verbose=1)###################   Data preparation   ########################################
 
 # Check if the database can be opened.
 if not dataset.signal_data_found(dir_braid, normalized_signals):
@@ -88,7 +90,7 @@ print(f'The number of testing samples: {len(meta_test)}')
 ########################################   Evaluate MLP   ########################################
 
 # MLP Raw
-if True:
+if False:
     model = MlpRaw(dir_braid, signal_length, [1024, 512, 1024])
     #model = MlpRaw(dir_braid, signal_length, [1024, 512, 256, 64, 256, 512, 1024])
     #model = MlpRaw(dir_braid, signal_length, [1024, 512, 256, 512, 1024])
@@ -98,7 +100,7 @@ if True:
         model.train(X_train, Y_train)
         model.save()
 
-    model.evaluate(X_test, Y_test, meta_test, class_threshold=0.1, kernel_size=7, plots=True)
+    model.evaluate(X_test, Y_test, meta_test, class_threshold=0.1, kernel_size=11, plots=False)
 
 # MLP Frames
 if False:
@@ -111,3 +113,43 @@ if False:
 
     model.evaluate(X_test, Y_test, meta_test, class_threshold=0.1, kernel_size=9, plots=False)
 
+# CNN
+if False:
+    model = CNN(dir_braid, signal_length, filters=64)
+    model.print()
+
+    if force_training or not model.load():
+        model.train(X_train, Y_train)
+        model.save()
+
+    model.evaluate(X_test, Y_test, meta_test, class_threshold=0.1, kernel_size=3, plots=False)
+
+# Hyper-parameter fine-tuning for CNN
+if True:
+    model = CNN(dir_braid, signal_length, filters=32)
+    model.print()
+
+    model.train(X_train, Y_train)
+
+    results = []
+    for threshold in np.arange(0.01, 0.99, 0.01):
+        print(f'Threshold: {threshold}')
+        measurements = model.evaluate(X_test, Y_test, meta_test, class_threshold=threshold, kernel_size=3, plots=False)
+        results.append((threshold, measurements))
+    
+    f = open('threshold-results.txt', 'w')
+    for (threshold, measurements) in results:
+        (tp, fn, fp, cnt_correct, cnt) = measurements
+        f.write(f'{threshold},{tp},{fn},{fp},{cnt_correct},{cnt}\n')
+    f.close()
+
+# TCN
+if False:
+    model = TCN(dir_braid, signal_length, cnn_filters=32, tcn_filters=64, tcn_dilations=[1, 2, 4, 8])
+    model.print()
+
+    if force_training or not model.load():
+        model.train(X_train, Y_train)
+        model.save()
+
+    model.evaluate(X_test, Y_test, meta_test, class_threshold=0.1, kernel_size=9, plots=False)
