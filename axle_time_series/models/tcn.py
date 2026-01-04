@@ -17,16 +17,18 @@ import evaluation
 import losses
 
 class TCN(BraidModel):
-    def tcn_block(x, filters, kernel_size, dilation_rate, dropout=0.1):
+    def tcn_block(x, filters, kernel_size, dilation_rate, dropout):
         residual = x
 
         x = layers.Conv1D(
             filters,
             kernel_size,
             padding="same",
-            dilation_rate=dilation_rate,
-            activation="relu"
+            dilation_rate=dilation_rate
         )(x)
+
+        x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
 
         x = layers.Dropout(dropout)(x)
 
@@ -34,27 +36,22 @@ class TCN(BraidModel):
             filters,
             kernel_size,
             padding="same",
-            dilation_rate=dilation_rate,
-            activation="relu"
+            dilation_rate=dilation_rate
         )(x)
+
+        x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
 
         return layers.Add()([x, residual])
 
-    def __init__(self, dir_braid, sample_size, cnn_filters, tcn_filters, tcn_dilations):
+    def __init__(self, dir_braid, sample_size, tcn_filters, tcn_dilations, dropout):
         name = f'tcn_{sample_size}'
         super().__init__(dir_braid, name)
 
         self._sample_size = sample_size
 
         inputs = layers.Input(shape=(sample_size, 1))
-
-        conv3 = layers.Conv1D(filters=cnn_filters, kernel_size=3, padding="same", activation="relu")(inputs)
-        conv5 = layers.Conv1D(filters=cnn_filters, kernel_size=5, padding="same", activation="relu")(inputs)
-        conv7 = layers.Conv1D(filters=cnn_filters, kernel_size=7, padding="same", activation="relu")(inputs)
-        conv9 = layers.Conv1D(filters=cnn_filters, kernel_size=9, padding="same", activation="relu")(inputs)
-        x = layers.Concatenate()([conv3, conv5, conv7, conv9])
-
-        x = layers.Conv1D(filters=tcn_filters, kernel_size=1, activation="relu")(x)
+        x = inputs
 
         for d in tcn_dilations:
             x = TCN.tcn_block(
@@ -62,12 +59,11 @@ class TCN(BraidModel):
                 filters=tcn_filters,
                 kernel_size=3,
                 dilation_rate=d,
-                dropout=0.1
+                dropout=dropout
             )
 
         x = layers.Conv1D(filters=1, kernel_size=1, padding="same", activation="sigmoid")(x)
         x = layers.Flatten()(x)
-        #outputs = layers.Dense(sample_size, activation='sigmoid')(x)
 
         outputs = x
         
@@ -91,16 +87,10 @@ class TCN(BraidModel):
         print('Evaluating the untrained model.')
 
         # Evaluate the untrained model
-        res = self._model.evaluate(X, Y, verbose=1)
         loss, _ = self._model.evaluate(X, Y, verbose=1)
         file.write(f'0,{loss},{loss}\n')
 
         print('Training the model.')
-
-        class_weight = {
-            0: 1.0,
-            1: 20.0
-        }
 
         # Train the model
         history = self._model.fit(
@@ -109,7 +99,7 @@ class TCN(BraidModel):
             batch_size=32,
             validation_split=0.2,
             shuffle=True,
-            #class_weight=class_weight,
+            #class_weight={0: 0.7, 1: 5.5},
             callbacks=[early_stop],
             verbose=1
         )
@@ -119,7 +109,7 @@ class TCN(BraidModel):
         
         file.close()
 
-    def evaluate(self, X, Y, meta, class_threshold, kernel_size, plots=False):
+    def evaluate(self, X, Y, meta, class_threshold, kernel_size, plots=False, vehicle_info=None):
         super().evaluate(X, Y, meta)
 
         print('Evaluating the model.')
@@ -146,13 +136,12 @@ class TCN(BraidModel):
         sum_mae = 0
         for (signal, pulses, m, prediction) in zip(X, Y, meta, predictions):
             ts = m[0]
-            groups = m[1]
+            groups = m[2]
 
             if groups not in self.groups_confusion:
                 self.groups_confusion[groups] = {'positive': 0, 'negative': 0}
 
-            filtered_prediction = evaluation.max_filter(prediction, threshold=class_threshold, kernel_size=kernel_size)
-
+            filtered_prediction = evaluation.max_filter(prediction, threshold=class_threshold, kernel_size=9)
             tp, fn, fp, mae = evaluation.sample_accuracy(pulses, filtered_prediction, class_threshold, kernel_size)
             
             if fn + fp == 0:
@@ -171,8 +160,22 @@ class TCN(BraidModel):
                     file.write(f',{pulse}')
                 file.write('\n\n')
 
-                if plots:
-                    visualizations.plot_prediction(f'{dir_plots_neg}{groups}_{ts}.png', signal, pulses, filtered_prediction, comment=f'Groups: {groups} FP:{fp} FN:{fn}')
+            if plots:
+                siwim_correct = vehicle_info[ts]['siwim_correct']
+                ai_correct = (fn + fp) == 0
+
+                metadata = {
+                        'ts': ts,
+                        'groups': groups,
+                        'siwim': siwim_correct,
+                        'ai': ai_correct,
+                        'missed': fn,
+                        'ghost': fp,
+                        'image': vehicle_info[ts]['photo']
+                    }
+
+                filename = f'{self._dir_plots}{vehicle_info[ts]['id']}_{'T' if siwim_correct else 'F'}{'T' if ai_correct else 'F'}.png'
+                visualizations.plot_testing_sample(filename, signal, pulses, filtered_prediction, class_threshold, metadata)
                 
             cnt += 1
 
@@ -211,6 +214,9 @@ class TCN(BraidModel):
         print('Sample results:')
         print(f'Accuracy: {cnt_correct / cnt}')
 
+        ret_val = (tp, fn, fp, cnt_correct, cnt)
+        return ret_val
+
         file = open(f'{self._dir_results}metrics.txt', 'w')
         file.write('Axle results:\n')
         file.write(f'- TP: {tp}, FN: {fn}, FP: {fp}\n')
@@ -245,3 +251,5 @@ class TCN(BraidModel):
         plt.ylabel('Frequency')
         plt.title(f'Confidence values ({len(thrs_t) + len(thrs_f)})')
         plt.savefig(f'{self._dir_evaluation}hist_confidence.png')
+
+        return ret_val

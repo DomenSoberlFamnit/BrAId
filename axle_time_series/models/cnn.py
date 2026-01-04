@@ -107,7 +107,6 @@ class CNN(BraidModel):
         print('Evaluating the untrained model.')
 
         # Evaluate the untrained model
-        res = self._model.evaluate(X, Y, verbose=1)
         loss, _ = self._model.evaluate(X, Y, verbose=1)
         file.write(f'0,{loss},{loss}\n')
 
@@ -157,7 +156,7 @@ class CNN(BraidModel):
         sum_mae = 0
         for (signal, pulses, m, prediction) in zip(X, Y, meta, predictions):
             ts = m[0]
-            groups = m[1]
+            groups = m[2]
 
             if groups not in self.groups_confusion:
                 self.groups_confusion[groups] = {'positive': 0, 'negative': 0}

@@ -9,8 +9,8 @@ import split_instances
 import split_instances_validation
 import check_instances
 
-dir_siwim = '/home/hicup/disk/siwim/siwim/'
-dir_braid = '/home/hicup/disk/braid/'
+dir_siwim = '/home/domen/workspace/braid/data/siwim/'
+dir_braid = '/home/domen/workspace/braid/workdir/camera/'
 
 force_instance_split = True  # Randomly split the instances even if the datasets already exist.
 num_training_samples = 5000  # The size of the class. If less available, oversampling through replication is used.
