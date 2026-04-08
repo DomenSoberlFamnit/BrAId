@@ -52,7 +52,6 @@ def generate_samples(dir_braid, signal_length, signal_name, normalized_signals=T
     else:
         fname_signals = 'nn_signals.hdf5'
         fname_pulses = 'nn_pulses.json'
-
     X = []
     Y = []
 
