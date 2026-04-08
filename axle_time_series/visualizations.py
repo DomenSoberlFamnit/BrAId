@@ -39,7 +39,9 @@ def plot_frame(filename, frame, pulse, miny, maxy):
     plt.savefig(filename)
     plt.close()
 
-def plot_testing_sample(filename, signal, pulses, predictions, threshold, meta):
+def plot_testing_sample(filename, signal, pulses, predictions, meta):
+    threshold = meta['threshold']
+
     img = Image.new(mode="RGB", size=(1300, 800), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
@@ -79,7 +81,7 @@ def plot_testing_sample(filename, signal, pulses, predictions, threshold, meta):
     draw.line([(0, 790), (1300, 790)], fill=(0, 0, 0), width=1)
 
     # Embedded image
-    embedded = Image.open(meta['image'])
+    embedded = Image.open(meta['photo'])
     img.paste(embedded, (650, 10))
 
     # Information
@@ -89,23 +91,28 @@ def plot_testing_sample(filename, signal, pulses, predictions, threshold, meta):
     draw.text((10, 10), timestamp, fill=(0, 0, 0), font=font)
     draw.text((10, 70), f'Axle groups: {meta['groups']}', fill=(0, 0, 0), font=font)
     
-    if meta['siwim']:
-        draw.text((10, 110), f'SiWIM: correct', fill=(0, 192, 0), font=font)
+    if meta['detected_correct']:
+        draw.text((10, 110), f'SiWIM detected: {meta['detected']}', fill=(0, 192, 0), font=font)
     else:
-        draw.text((10, 110), f'SiWIM: incorrect', fill=(224, 0, 0), font=font)
+        draw.text((10, 110), f'SiWIM detected: {meta['detected']}', fill=(224, 0, 0), font=font)
     
-    if meta['ai']:
-        draw.text((10, 150), f'AI: correct', fill=(0, 192, 0), font=font)
+    if meta['weighed_correct']:
+        draw.text((10, 150), f'SiWIM weighed: {meta['weighed']}', fill=(0, 192, 0), font=font)
     else:
-        draw.text((10, 150), f'AI: incorrect', fill=(224, 0, 0), font=font)
+        draw.text((10, 150), f'SiWIM weighed: {meta['weighed']}', fill=(224, 0, 0), font=font)
+
+    if meta['ai_correct']:
+        draw.text((10, 190), f'AI: correct', fill=(0, 192, 0), font=font)
+    else:
+        draw.text((10, 190), f'AI: incorrect', fill=(224, 0, 0), font=font)
     
     
-    draw.text((10, 210), f'Found: {cnt_predictions}/{cnt_pulses}', fill=(0, 0, 0), font=font)
-    draw.text((10, 250), f'Missed (FN): {meta['missed']}', fill=(0, 0, 0), font=font)
-    draw.text((10, 290), f'Ghost (FP): {meta['ghost']}', fill=(0, 0, 0), font=font)
+    draw.text((10, 250), f'Found: {cnt_predictions}/{cnt_pulses}', fill=(0, 0, 0), font=font)
+    draw.text((10, 290), f'Missed (FN): {meta['missed']}', fill=(0, 0, 0), font=font)
+    draw.text((10, 330), f'Ghost (FP): {meta['ghost']}', fill=(0, 0, 0), font=font)
 
     draw.text((10, 370), f'Samples: 1300', fill=(0, 0, 0), font=font)
     draw.text((10, 410), f'Axle threshold: {threshold}', fill=(0, 0, 0), font=font)
-    draw.text((10, 450), f'Axle tolerance: 1 sample', fill=(0, 0, 0), font=font)
+    draw.text((10, 450), f'Axle tolerance: {meta['tolerance']} samples', fill=(0, 0, 0), font=font)
     
     img.save(filename)

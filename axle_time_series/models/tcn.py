@@ -109,11 +109,12 @@ class TCN(BraidModel):
         
         file.close()
 
-    def evaluate(self, X, Y, meta, class_threshold, kernel_size, plots=False, vehicle_info=None):
+    def evaluate(self, X, Y, meta, class_threshold, kernel_size, vehicle_info=None):
         super().evaluate(X, Y, meta)
 
         print('Evaluating the model.')
         predictions = self._model.predict(X)
+        filtered_predictions = []
 
         self.axle_confusion = {'tp': 0, 'fp': 0, 'fn': 0}
         self.groups_confusion = {}
@@ -121,13 +122,12 @@ class TCN(BraidModel):
         thrs_t = []
         thrs_f = []
 
-        if plots:
-            dir_plots_neg = f'{self._dir_plots}validation/negative/'
-            if os.path.exists(dir_plots_neg):
-                shutil.rmtree(dir_plots_neg)
-            os.makedirs(dir_plots_neg)
-
-        file = open(f'{self._dir_results}incorrect_classifications.txt', 'w')
+        incorrect_file_path = f'{self._dir_results}incorrect_classifications.txt'
+        if os.path.exists(incorrect_file_path) and False:
+            file = open(incorrect_file_path, 'a')
+        else:
+            file = open(incorrect_file_path, 'w')
+            file.write(f'ts,groups,detected,weighed,ai_correct,fn,fp,class_threshold,kernel_size,photo\n')
 
         bar = Bar('Evaluating model', max=len(predictions))
 
@@ -136,47 +136,32 @@ class TCN(BraidModel):
         sum_mae = 0
         for (signal, pulses, m, prediction) in zip(X, Y, meta, predictions):
             ts = m[0]
-            groups = m[2]
+            groups = m[3]
 
             if groups not in self.groups_confusion:
                 self.groups_confusion[groups] = {'positive': 0, 'negative': 0}
 
             filtered_prediction = evaluation.max_filter(prediction, threshold=class_threshold, kernel_size=9)
+            filtered_predictions.append(filtered_prediction)
+
             tp, fn, fp, mae = evaluation.sample_accuracy(pulses, filtered_prediction, class_threshold, kernel_size)
             
+            detected = m[1]
+            weighed = m[2]
+            final = m[3]
+
+            detected_correct = detected == final
+            weighed_correct = weighed == final
+            siwim_correct = detected_correct and weighed_correct
+            ai_correct = (fn + fp) == 0
+
             if fn + fp == 0:
                 self.groups_confusion[groups]['positive'] += 1
                 cnt_correct += 1
             else:
                 self.groups_confusion[groups]['negative'] += 1
-                file.write(f'{ts},{groups},truth,')
-                for pulse in pulses:
-                    file.write(f',{pulse}')
-                file.write(f'\n{ts},{groups},prediction,')
-                for pulse in prediction:
-                    file.write(f',{pulse}')
-                file.write(f'\n{ts},{groups},maxpool,')
-                for pulse in filtered_prediction:
-                    file.write(f',{pulse}')
-                file.write('\n\n')
+                file.write(f'{ts},{groups},{detected},{weighed},{ai_correct},{fn},{fp},{class_threshold},{kernel_size},{vehicle_info[ts]['photo']}\n')
 
-            if plots:
-                siwim_correct = vehicle_info[ts]['siwim_correct']
-                ai_correct = (fn + fp) == 0
-
-                metadata = {
-                        'ts': ts,
-                        'groups': groups,
-                        'siwim': siwim_correct,
-                        'ai': ai_correct,
-                        'missed': fn,
-                        'ghost': fp,
-                        'image': vehicle_info[ts]['photo']
-                    }
-
-                filename = f'{self._dir_plots}{vehicle_info[ts]['id']}_{'T' if siwim_correct else 'F'}{'T' if ai_correct else 'F'}.png'
-                visualizations.plot_testing_sample(filename, signal, pulses, filtered_prediction, class_threshold, metadata)
-                
             cnt += 1
 
             self.axle_confusion['tp'] += tp
@@ -193,7 +178,7 @@ class TCN(BraidModel):
             if cnt % 10 == 0:
                 bar.suffix = f'Complete: {bar.percent:3.0f}/100 | AC axles/samples: {(100 * acc):3.2f}/{(100 * cnt_correct / cnt):3.2f}'
 
-            thrs_t_1, thrs_f_1 = evaluation.sample_thresholds(pulses, prediction, kernel_size)
+            thrs_t_1, thrs_f_1 = evaluation.sample_thresholds(pulses, filtered_prediction, kernel_size)
 
             thrs_t = thrs_t + thrs_t_1
             thrs_f = thrs_f + thrs_f_1
@@ -214,7 +199,7 @@ class TCN(BraidModel):
         print('Sample results:')
         print(f'Accuracy: {cnt_correct / cnt}')
 
-        ret_val = (tp, fn, fp, cnt_correct, cnt)
+        ret_val = (filtered_predictions, tp, fn, fp, cnt_correct, cnt)
         return ret_val
 
         file = open(f'{self._dir_results}metrics.txt', 'w')
@@ -253,3 +238,53 @@ class TCN(BraidModel):
         plt.savefig(f'{self._dir_evaluation}hist_confidence.png')
 
         return ret_val
+
+    def plot_incorrect(self, X, Y, meta, predictions, vehicle_info):
+        plots_meta = {}
+
+        file = open(f'{self._dir_results}incorrect_classifications.txt', 'r')
+        skip = 1
+        for line in file:
+            if skip > 0:
+                skip -= 1
+                continue
+
+            values = line.strip().split(',')
+            ts = values[0]
+            
+            plots_meta[ts] = {
+                'id': vehicle_info[ts]['id'],
+                'ts': values[0],
+                'groups': values[1],
+                'detected': values[2],
+                'detected_correct': values[2] == values[1],
+                'weighed': values[3],
+                'weighed_correct': values[3] == values[1],
+                'ai_correct': values[4] == 'True',
+                'missed': int(values[5]),
+                'ghost': int(values[6]),
+                'threshold': float(values[7]),
+                'tolerance': (int(values[8]) - 1) // 2,
+                'photo': values[9]
+            }
+        file.close()
+
+        bar = Bar('Plotting incorrect instances', max=len(plots_meta))
+
+        for (signal, pulses, m, prediction) in zip(X, Y, meta, predictions):
+            ts = m[0]
+            
+            if ts not in plots_meta:
+                continue
+            
+            plot_meta = plots_meta[ts]
+
+            detected_tag = 'T' if plot_meta['detected_correct'] else 'F'
+            weighed_tag = 'T' if plot_meta['weighed_correct'] else 'F'
+            ai_tag = 'T' if plot_meta['ai_correct'] else 'F'
+            filename = f'{self._dir_plots}{plots_meta[ts]['id']}_{detected_tag}{weighed_tag}{ai_tag}.png'
+            
+            visualizations.plot_testing_sample(filename, signal, pulses, prediction, plot_meta)
+            bar.next()
+
+        bar.finish()

@@ -31,40 +31,24 @@ class LocalMaxSuppress1D(tf.keras.layers.Layer):
         return tf.where(tf.equal(x, max_vals), x, tf.zeros_like(x))
 
 class CNN(BraidModel):
-    def __init__(self, dir_braid, sample_size, filters):
-        name = f'tcn_{sample_size}'
+    def __init__(self, dir_braid, sample_size, filters, cnn_layers, dropout):
+        name = f'ccn_{sample_size}'
         super().__init__(dir_braid, name)
 
         self._sample_size = sample_size
-
-        self.arch_seq(filters)
-        #self.arch_par()
+        self.arch_seq(filters, cnn_layers, dropout)
 
         self._model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['mse'])
 
-    def arch_seq(self, filters):
+    def arch_seq(self, filters, cnn_layers, dropout):
         inputs = layers.Input(shape=(self._sample_size, 1))
         x = inputs
 
-        #x = layers.Conv1D(filters=filters, kernel_size=11, padding="same")(x)
-        #x = layers.BatchNormalization()(x)
-        #x = layers.Activation('relu')(x)
-
-        x = layers.Conv1D(filters=filters, kernel_size=9, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.Activation('relu')(x)
-
-        x = layers.Conv1D(filters=filters, kernel_size=7, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.Activation('relu')(x)
-
-        x = layers.Conv1D(filters=filters, kernel_size=5, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.Activation('relu')(x)
-
-        x = layers.Conv1D(filters=filters, kernel_size=3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.Activation('relu')(x)
+        for kernel_size in cnn_layers:
+            x = layers.Conv1D(filters=filters, kernel_size=kernel_size, padding="same")(x)
+            x = layers.BatchNormalization()(x)
+            x = layers.Activation('relu')(x)
+            #x = layers.Dropout(dropout)(x)
 
         x = layers.Conv1D(filters=1, kernel_size=1, padding="same")(x)
         x = layers.Activation('sigmoid')(x)
@@ -129,7 +113,7 @@ class CNN(BraidModel):
         
         file.close()
 
-    def evaluate(self, X, Y, meta, class_threshold, kernel_size, plots=False):
+    def evaluate(self, X, Y, meta, class_threshold, kernel_size, plots=False, vehicle_info=None):
         super().evaluate(X, Y, meta)
 
         print('Evaluating the model.')
@@ -161,7 +145,8 @@ class CNN(BraidModel):
             if groups not in self.groups_confusion:
                 self.groups_confusion[groups] = {'positive': 0, 'negative': 0}
 
-            filtered_prediction = evaluation.max_filter(prediction, threshold=class_threshold, kernel_size=9)
+            # filtered_prediction = evaluation.max_filter(prediction, threshold=class_threshold, kernel_size=9)
+            filtered_prediction = prediction
             tp, fn, fp, mae = evaluation.sample_accuracy(pulses, filtered_prediction, class_threshold, kernel_size)
             
             if fn + fp == 0:
@@ -180,8 +165,22 @@ class CNN(BraidModel):
                     file.write(f',{pulse}')
                 file.write('\n\n')
 
-                if plots:
-                    visualizations.plot_prediction(f'{dir_plots_neg}{groups}_{ts}.png', signal, pulses, filtered_prediction, comment=f'Groups: {groups} FP:{fp} FN:{fn}')
+            if plots:
+                siwim_correct = vehicle_info[ts]['siwim_correct']
+                ai_correct = (fn + fp) == 0
+
+                metadata = {
+                        'ts': ts,
+                        'groups': groups,
+                        'siwim': siwim_correct,
+                        'ai': ai_correct,
+                        'missed': fn,
+                        'ghost': fp,
+                        'image': vehicle_info[ts]['photo']
+                    }
+
+                filename = f'{self._dir_plots}{vehicle_info[ts]['id']}_{'T' if siwim_correct else 'F'}{'T' if ai_correct else 'F'}.png'
+                visualizations.plot_testing_sample(filename, signal, pulses, filtered_prediction, class_threshold, metadata)
                 
             cnt += 1
 
@@ -221,6 +220,7 @@ class CNN(BraidModel):
         print(f'Accuracy: {cnt_correct / cnt}')
 
         ret_val = (tp, fn, fp, cnt_correct, cnt)
+        return ret_val
 
         file = open(f'{self._dir_results}metrics.txt', 'w')
         file.write('Axle results:\n')

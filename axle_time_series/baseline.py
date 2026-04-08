@@ -29,34 +29,3 @@ def accuracy(dir_braid, normalized_signals):
                 count += 1
 
     return sum_correct / count
-
-####### ----- Not needed ----- #######
-def add_siwim_correctness(dir_braid, normalized_signals, vehicle_info):
-    if normalized_signals:
-        fname_signals = 'nn_normalised_signals.hdf5'
-        fname_pulses = 'nn_normalised_pulses.json'
-    else:
-        fname_signals = 'nn_signals.hdf5'
-        fname_pulses = 'nn_pulses.json'
-    
-    print(f'Adding SiWIM corectness.')
-
-    with open(f'{dir_braid}data/{fname_pulses}', 'r') as file:
-        pulses = json.load(file)
-    file.close()
-
-    for pulse in pulses:
-        ts = str(pulse['ts'])
-
-        detected = pulse['vehicle']['detected']['axle_distance']
-        weighed = pulse['vehicle']['weighed']['axle_distance']
-        final = pulse['vehicle']['final']['axle_distance']
-
-        correct = detected == weighed and weighed == final
-
-        assert ts in vehicle_info
-        vehicle_info[ts]['siwim_correct'] = correct
-    
-    for ts in vehicle_info:
-        if 'siwim_correct' not in vehicle_info[ts]:
-            vehicle_info[ts]['siwim_correct'] = None
