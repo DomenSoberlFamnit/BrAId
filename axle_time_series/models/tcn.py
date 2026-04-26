@@ -9,6 +9,7 @@ from tensorflow import keras
 from tensorflow.keras import layers, models
 from progress.bar import Bar
 import matplotlib.pyplot as plt
+from tensorflow.keras.utils import plot_model
 
 from models.base import BraidModel
 import dataset
@@ -69,6 +70,8 @@ class TCN(BraidModel):
         
         self._model = models.Model(inputs, outputs)
         self._model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['mse'])
+
+        plot_model(self._model, to_file='tcn_model.png', show_shapes=True)
     
     def train(self, X, Y):
         super().train(X, Y)
@@ -122,8 +125,8 @@ class TCN(BraidModel):
         thrs_t = []
         thrs_f = []
 
-        incorrect_file_path = f'{self._dir_results}incorrect_classifications.txt'
-        if os.path.exists(incorrect_file_path) and False:
+        incorrect_file_path = f'{self._dir_results}incorrect_classifications.csv'
+        if os.path.exists(incorrect_file_path):
             file = open(incorrect_file_path, 'a')
         else:
             file = open(incorrect_file_path, 'w')
@@ -197,6 +200,7 @@ class TCN(BraidModel):
         print(f'Accuracy: {tp / (tp + fn + fp)}')
         print(f'Mae: {sum_mae / cnt}')
         print('Sample results:')
+        print(f'Incorrect samples: {cnt - cnt_correct}')
         print(f'Accuracy: {cnt_correct / cnt}')
 
         ret_val = (filtered_predictions, tp, fn, fp, cnt_correct, cnt)

@@ -61,9 +61,12 @@ class BraidModel:
             shutil.rmtree(self._dir_evaluation)
         os.makedirs(self._dir_evaluation)
 
-        if os.path.exists(self._dir_results):
-            shutil.rmtree(self._dir_results)
-        os.makedirs(self._dir_results)
+        # if os.path.exists(self._dir_results):
+        #     shutil.rmtree(self._dir_results)
+        # os.makedirs(self._dir_results)
+
+        if not os.path.exists(self._dir_results):
+            os.makedirs(self._dir_results)
 
         if os.path.exists(self._dir_plots):
             shutil.rmtree(self._dir_plots)

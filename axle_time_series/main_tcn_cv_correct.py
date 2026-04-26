@@ -24,7 +24,8 @@ data = dataset.get_data(
     include_correct=True,
     include_fixed=False,
     signal_length=signal_length,
-    shuffle=True
+    shuffle=False,
+    exclude_days=['2014-4-3']
 )
 
 ########################################   Evaluate Model   ########################################
@@ -41,11 +42,11 @@ for fold_k in range(fold_n):
     model = TCN(dir_braid, signal_length, tcn_filters=64, tcn_dilations=[1, 2, 3, 4, 5, 6, 7], dropout=0.1)
     
     model.train(X_train, Y_train)
-    measurements = model.evaluate(X_test, Y_test, meta_test, class_threshold=0.2, kernel_size=3, plots=False, vehicle_info=vehicle_info)
+    measurements = model.evaluate(X_test, Y_test, meta_test, class_threshold=0.2, kernel_size=9, vehicle_info=vehicle_info)
     results.append(measurements)
 
     f = open('tcn-cross-validation-results.txt', 'w')
     for (i, measurements) in enumerate(results):
-        (tp, fn, fp, cnt_correct, cnt) = measurements
+        (_, tp, fn, fp, cnt_correct, cnt) = measurements
         f.write(f'{i},{tp},{fn},{fp},{cnt_correct},{cnt}\n')
     f.close()

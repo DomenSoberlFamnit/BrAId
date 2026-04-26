@@ -5,6 +5,7 @@ import h5py
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from progress.bar import Bar
+from datetime import datetime
 
 import baseline
 
@@ -33,19 +34,32 @@ def signal_data_found(dir_braid, normalized_signals=True):
 def signal_trim_back(raw_signal, last_pulse_idx, threshold):
     idx = last_pulse_idx
     
-    while idx < len(raw_signal) and raw_signal[idx] > threshold:
+    while idx < len(raw_signal) and raw_signal[idx] > 0:
         idx += 1
     
-    corrected = False
+    while idx < len(raw_signal) and raw_signal[idx] < 0:
+        idx += 1
+    
+    amount = 0
     while idx < len(raw_signal):
-        if raw_signal[idx] > threshold:
-            raw_signal[idx] = threshold
-            corrected = True
+        amount += abs(raw_signal[idx])
+        raw_signal[idx] = 0
         idx += 1
 
-    return corrected
+    return amount
 
-def generate_samples(dir_braid, signal_length, signal_name, normalized_signals=True, include_correct=True, include_fixed=True):
+def generate_samples(
+    dir_braid,
+    signal_length,
+    signal_name,
+    normalized_signals=True,
+    include_correct=True,
+    include_fixed=True,
+    gen_daily_dist=False,
+    from_csv=None,
+    include_days=None,
+    exclude_days=None
+):
     if normalized_signals:
         fname_signals = 'nn_normalised_signals.hdf5'
         fname_pulses = 'nn_normalised_pulses.json'
@@ -63,6 +77,21 @@ def generate_samples(dir_braid, signal_length, signal_name, normalized_signals=T
     min_dist = 1000000
     max_dist = 0
 
+    allowed_ts = None
+    if from_csv is not None and os.path.exists(from_csv):
+        allowed_ts = []
+        file = open(from_csv, 'r')
+        header = True
+        for line in file:
+            if header:
+                header = False
+                continue
+            rows = line.split(",")
+            ts = float(rows[0])
+            allowed_ts.append(ts)
+
+    daily_dist = {}
+
     with open(f'{dir_braid}data/{fname_pulses}', 'r') as file:
         pulses_file = json.load(file)
     file.close()
@@ -79,8 +108,6 @@ def generate_samples(dir_braid, signal_length, signal_name, normalized_signals=T
                 bar.next()
                 continue
 
-            cnt += 1
-
             sample_correct = pulse['vehicle']['detected']['axle_pulses'] == pulse['vehicle']['weighed']['axle_pulses'] == pulse['vehicle']['final']['axle_pulses']
 
             # Do we skip correct samples?
@@ -93,6 +120,44 @@ def generate_samples(dir_braid, signal_length, signal_name, normalized_signals=T
                 bar.next()
                 continue
 
+            # If we have a list of allowed TS, skip if not in the list.
+            if allowed_ts is not None:
+                if pulse['ts'] not in allowed_ts:
+                    bar.next()
+                    continue
+
+            # Time stamp
+            date = datetime.fromtimestamp(pulse['ts'])
+            date_str = f'{date.year}-{date.month}-{date.day}'
+
+            if exclude_days is not None:
+                if date_str in exclude_days:
+                    bar.next()
+                    continue
+
+            if include_days is not None:
+                if date_str not in include_days:
+                    bar.next()
+                    continue
+
+            # Daily distibution
+            if date_str not in daily_dist:
+                daily_dist[date_str] = {
+                    'year': date.year,
+                    'month': date.month,
+                    'day': date.day,
+                    'correct': 0,
+                    'fixed': 0
+                }
+
+            if sample_correct:
+                daily_dist[date_str]['correct'] += 1
+            else:
+                daily_dist[date_str]['fixed'] += 1
+
+            # This sample is included.
+            cnt += 1
+
             # Get metadata.
             ts = pulse['ts_str']
             timestamps.append(ts)
@@ -104,8 +169,8 @@ def generate_samples(dir_braid, signal_length, signal_name, normalized_signals=T
             raw_signal = np.array(signals[ts][signal_name])
 
             # Filter the signal.
-            corrected = signal_trim_back(raw_signal, pulse['vehicle']['final']['axle_pulses'][-1], 0.1)
-            if corrected:
+            amount = signal_trim_back(raw_signal, pulse['vehicle']['final']['axle_pulses'][-1], 0.1)
+            if amount > 0:
                 cnt_corrected += 1
             
             # Length of the signal.
@@ -154,7 +219,7 @@ def generate_samples(dir_braid, signal_length, signal_name, normalized_signals=T
     X = np.array(X)
     Y = np.array(Y)
 
-    print(f'Found {cnt} training samples.')
+    print(f'Found {cnt} samples.')
     print(f'Signal lengths are between {np.min(lengths)} and {np.max(lengths)}.')
     print(f'Pulses are located between {np.min(locations)} and {np.max(locations)}.')
     print(f'Minimal distance between pulses is {min_dist}.')
@@ -162,13 +227,21 @@ def generate_samples(dir_braid, signal_length, signal_name, normalized_signals=T
     print(f'Corrected {cnt_corrected} signals.')
 
     print(f'Saving {dir_braid}meta.npy')
-    np.save(f'{dir_braid}meta.npy', X)
+    np.save(f'{dir_braid}meta.npy', meta)
 
     print(f'Saving {dir_braid}signals_x.npy')
     np.save(f'{dir_braid}signals_x.npy', X)
     
     print(f'Saving {dir_braid}signals_y.npy')
     np.save(f'{dir_braid}signals_y.npy', Y)
+
+    if gen_daily_dist:
+        print(f'Saving {dir_braid}daily_distribution.csv')
+        f = open(f'{dir_braid}daily_distribution.csv', 'w')
+        for ts in daily_dist:
+            record = daily_dist[ts]
+            f.write(f'{record['year']},{record['month']},{record['day']},{record['correct']},{record['fixed']}\n')
+        f.close()
 
     return meta, X, Y
 
@@ -517,9 +590,24 @@ def get_data(
     include_fixed,
     include_correct,
     signal_length,
-    shuffle
+    shuffle,
+    gen_daily_dist=False,
+    from_csv=None,
+    include_days=None,
+    exclude_days=None
 ):   
-    meta, X, Y = generate_samples(dir_braid, signal_length, input_signal, normalized_signals, include_correct, include_fixed)
+    meta, X, Y = generate_samples(
+        dir_braid,
+        signal_length,
+        input_signal,
+        normalized_signals,
+        include_correct,
+        include_fixed,
+        gen_daily_dist,
+        from_csv,
+        include_days,
+        exclude_days
+    )
 
     print(f'The number of samples: {len(meta)}')
 
