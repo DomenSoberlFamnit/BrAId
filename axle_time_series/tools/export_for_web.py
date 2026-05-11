@@ -20,10 +20,12 @@ print('Loading samples.')
 meta = np.load(f'{dir_braid}meta.npy')
 X = np.load(f'{dir_braid}signals_x.npy')
 Y = np.load(f'{dir_braid}signals_y.npy')
+P = np.load(f'{dir_braid}signals_p.npy')
 
 csv = open('samples.csv', 'w')
 
-for signal, pulse, m in zip(X, Y, meta):
+print('Exporting.')
+for signal, pulse, prediction, m in zip(X, Y, P, meta):
     photo_id = photo_ids[m[0]]
 
     groups_detected = m[1]
@@ -36,6 +38,9 @@ for signal, pulse, m in zip(X, Y, meta):
         csv.write(f',{value}')
     
     for value in pulse:
+        csv.write(f',{value}')
+    
+    for value in prediction:
         csv.write(f',{value}')
     
     csv.write('\n')

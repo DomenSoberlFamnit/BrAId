@@ -17,14 +17,14 @@ if vehicle_info is None:
     print('Cannot load vehicle info.')
     quit()
 
-data = dataset.export_data(
+data = dataset.get_data(
     dir_braid=dir_braid,
     input_signal='11admp',
+    output_type='pulses',
     normalized_signals=True,
     include_correct=True,
-    include_fixed=False,
+    include_fixed=True,
     signal_length=signal_length,
-    vehicle_info=vehicle_info
+    shuffle=False,
+    from_csv=f'{dir_braid}results/tcn_1300/incorrect_classifications.csv'
 )
-
-

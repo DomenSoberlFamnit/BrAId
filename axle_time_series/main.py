@@ -19,10 +19,12 @@ data = dataset.get_data(
     input_signal='11admp',
     normalized_signals=True,
     include_correct=True,
-    include_fixed=False,
+    include_fixed=True,
     signal_length=signal_length,
-    shuffle=True
+    shuffle=False
 )
+
+quit()
 
 data_train, data_test = dataset.split_data(data, testing_ratio=0.3)
 

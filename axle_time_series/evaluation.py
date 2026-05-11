@@ -32,6 +32,14 @@ def plot_sample(filename, signal, pulses, prediction):
     plt.savefig(filename)
     plt.close()
 
+def distances_to_pulses(distances, width=1300, offset=10):
+    pulses = np.zeros(width)
+
+    for position in distances:
+        pulses[offset + round(position)] = 1.0
+
+    return pulses
+
 def max_filter(signal, threshold, kernel_size):
     filtered = signal.copy()
 

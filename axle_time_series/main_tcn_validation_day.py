@@ -13,19 +13,6 @@ if vehicle_info is None:
     print('Cannot load vehicle info.')
     quit()
 
-# dataset.get_data(
-#     dir_braid=dir_braid,
-#     input_signal='11admp',
-#     output_type='pulses',
-#     normalized_signals=True,
-#     include_correct=True,
-#     include_fixed=True,
-#     signal_length=signal_length,
-#     shuffle=False,
-#     gen_daily_dist=True,
-#     include_days=['2014-4-3']
-# )
-
 data_train = dataset.get_data(
     dir_braid=dir_braid,
     input_signal='11admp',
@@ -40,14 +27,14 @@ data_train = dataset.get_data(
 
 data_test = dataset.get_data(
     dir_braid=dir_braid,
-    input_signal='11admp',
+    input_signal='11admp'
     output_type='pulses',
     normalized_signals=True,
-    include_correct=False,
+    include_correct=True,
     include_fixed=True,
     signal_length=signal_length,
     shuffle=False,
-    exclude_days=['2014-4-3']
+    include_days=['2014-4-3']
 )
 
 (meta_train, X_train, Y_train) = data_train
@@ -61,5 +48,3 @@ model.train(X_train, Y_train)
 ########################################   Evaluate the data   ########################################
 
 (predictions, tp, fn, fp, cnt_correct, cnt) = model.evaluate(X_test, Y_test, meta_test, class_threshold=0.2, kernel_size=9, vehicle_info=vehicle_info)
-
-#model.plot_incorrect(X_test, Y_test, meta_test, predictions=predictions, vehicle_info=vehicle_info)

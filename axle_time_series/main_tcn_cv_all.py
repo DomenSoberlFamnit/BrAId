@@ -20,6 +20,7 @@ if vehicle_info is None:
 data = dataset.get_data(
     dir_braid=dir_braid,
     input_signal='11admp',
+    output_type='pulses',
     normalized_signals=True,
     include_correct=True,
     include_fixed=True,

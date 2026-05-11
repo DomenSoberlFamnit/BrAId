@@ -125,12 +125,26 @@ class TCN(BraidModel):
         thrs_t = []
         thrs_f = []
 
+        classifications_file_path = f'{self._dir_results}all_classifications.csv'
+        if os.path.exists(classifications_file_path):
+            file_all = open(classifications_file_path, 'a')
+        else:
+            file_all = open(classifications_file_path, 'w')
+            file_all.write(f'ts,groups,detected,weighed,ai_correct,fn,fp,class_threshold,kernel_size,photo,prediction_filename\n')
+
+        correct_file_path = f'{self._dir_results}correct_classifications.csv'
+        if os.path.exists(correct_file_path):
+            file_correct = open(correct_file_path, 'a')
+        else:
+            file_correct = open(correct_file_path, 'w')
+            file_correct.write(f'ts,groups,detected,weighed,ai_correct,fn,fp,class_threshold,kernel_size,photo,prediction_filename\n')
+
         incorrect_file_path = f'{self._dir_results}incorrect_classifications.csv'
         if os.path.exists(incorrect_file_path):
-            file = open(incorrect_file_path, 'a')
+            file_incorrect = open(incorrect_file_path, 'a')
         else:
-            file = open(incorrect_file_path, 'w')
-            file.write(f'ts,groups,detected,weighed,ai_correct,fn,fp,class_threshold,kernel_size,photo\n')
+            file_incorrect = open(incorrect_file_path, 'w')
+            file_incorrect.write(f'ts,groups,detected,weighed,ai_correct,fn,fp,class_threshold,kernel_size,photo,prediction_filename\n')
 
         bar = Bar('Evaluating model', max=len(predictions))
 
@@ -158,12 +172,26 @@ class TCN(BraidModel):
             siwim_correct = detected_correct and weighed_correct
             ai_correct = (fn + fp) == 0
 
+            prediction_filename = f'{self._dir_results}prediction_tcn_{vehicle_info[ts]['id']}.csv'
+            file_prediction = open(prediction_filename, 'w')
+            first = True
+            for value in filtered_prediction:
+                if first:
+                    file_prediction.write(f'{value:.4f}')
+                    first = False
+                else:
+                    file_prediction.write(f',{value:.4f}')
+            file_prediction.close()
+
+            file_all.write(f'{ts},{groups},{detected},{weighed},{ai_correct},{fn},{fp},{class_threshold},{kernel_size},{vehicle_info[ts]['photo']},{prediction_filename}\n')
+
             if fn + fp == 0:
                 self.groups_confusion[groups]['positive'] += 1
                 cnt_correct += 1
+                file_correct.write(f'{ts},{groups},{detected},{weighed},{ai_correct},{fn},{fp},{class_threshold},{kernel_size},{vehicle_info[ts]['photo']},{prediction_filename}\n')
             else:
                 self.groups_confusion[groups]['negative'] += 1
-                file.write(f'{ts},{groups},{detected},{weighed},{ai_correct},{fn},{fp},{class_threshold},{kernel_size},{vehicle_info[ts]['photo']}\n')
+                file_incorrect.write(f'{ts},{groups},{detected},{weighed},{ai_correct},{fn},{fp},{class_threshold},{kernel_size},{vehicle_info[ts]['photo']},{prediction_filename}\n')
 
             cnt += 1
 
@@ -181,15 +209,18 @@ class TCN(BraidModel):
             if cnt % 10 == 0:
                 bar.suffix = f'Complete: {bar.percent:3.0f}/100 | AC axles/samples: {(100 * acc):3.2f}/{(100 * cnt_correct / cnt):3.2f}'
 
-            thrs_t_1, thrs_f_1 = evaluation.sample_thresholds(pulses, filtered_prediction, kernel_size)
+            #thrs_t_1, thrs_f_1 = evaluation.sample_thresholds(pulses, filtered_prediction, kernel_size)
 
-            thrs_t = thrs_t + thrs_t_1
-            thrs_f = thrs_f + thrs_f_1
+            #thrs_t = thrs_t + thrs_t_1
+            #thrs_f = thrs_f + thrs_f_1
 
             bar.next()
         
         bar.finish()
-        file.close()
+
+        file_all.close()
+        file_correct.close()
+        file_incorrect.close()
 
         tp = self.axle_confusion['tp']
         fn = self.axle_confusion['fn']
@@ -246,7 +277,7 @@ class TCN(BraidModel):
     def plot_incorrect(self, X, Y, meta, predictions, vehicle_info):
         plots_meta = {}
 
-        file = open(f'{self._dir_results}incorrect_classifications.txt', 'r')
+        file = open(f'{self._dir_results}incorrect_classifications.csv', 'r')
         skip = 1
         for line in file:
             if skip > 0:
