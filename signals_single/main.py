@@ -2,8 +2,6 @@ import os
 import numpy as np
 
 import dataset
-from models.mlp_raw import MlpRaw
-from models.mlp_frames_one import MlpFramesOne
 from models.tcn import TCN
 from models.cnn import CNN
 
@@ -17,6 +15,7 @@ force_training = True
 data = dataset.get_data(
     dir_braid=dir_braid,
     input_signal='11admp',
+    output_type='pulses',
     normalized_signals=True,
     include_correct=True,
     include_fixed=True,
@@ -32,30 +31,6 @@ data_train, data_test = dataset.split_data(data, testing_ratio=0.3)
 (meta_test, X_test, Y_test) = data_test
 
 ########################################   Evaluate Models   ########################################
-
-# MLP Raw
-if False:
-    model = MlpRaw(dir_braid, signal_length, [1024, 512, 1024])
-    #model = MlpRaw(dir_braid, signal_length, [1024, 512, 256, 64, 256, 512, 1024])
-    #model = MlpRaw(dir_braid, signal_length, [1024, 512, 256, 512, 1024])
-    model.print()
-
-    if force_training or not model.load():
-        model.train(X_train, Y_train)
-        model.save()
-
-    model.evaluate(X_test, Y_test, meta_test, class_threshold=0.1, kernel_size=11, plots=False)
-
-# MLP Frames
-if False:
-    model = MlpFramesOne(dir_braid, 64, [8192, 4096])
-    model.print()
-
-    if force_training or not model.load():
-        model.train(X_train, Y_train)
-        model.save()
-
-    model.evaluate(X_test, Y_test, meta_test, class_threshold=0.1, kernel_size=9, plots=False)
 
 # CNN
 if False:

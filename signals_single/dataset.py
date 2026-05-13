@@ -72,8 +72,7 @@ def generate_samples(
 
     Y_dist = []
     Y_size = []
-
-
+    
     lengths = []
     locations = []
     timestamps = []
