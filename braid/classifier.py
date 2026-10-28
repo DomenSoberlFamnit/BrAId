@@ -40,7 +40,7 @@ def axle_groups_from_image(
     }
 
     if variants is None:
-        model_file = f'models/{site}/{architecture}.keras'
+        model_file = f'models/{site}-{architecture}.keras'
 
         if model_file not in models['braid']:
             return {'success': False, 'msg': 'Error: Unknown model.'}
@@ -55,7 +55,7 @@ def axle_groups_from_image(
 
     else:
         for variant in variants:
-            model_file = f'models/{site}/{architecture}-{variant}.keras'
+            model_file = f'models/{site}-{architecture}-{variant}.keras'
 
             if model_file not in models['braid']:
                 return {'success': False, 'msg': 'Error: Unknown model.'}

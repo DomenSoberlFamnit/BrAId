@@ -6,22 +6,9 @@ from progressbar import ProgressBar, Percentage, Bar
 from ultralytics import YOLO
 import tensorflow as tf
 
-_models_url = 'https://osebje.famnit.upr.si/~domen.soberl/braid/'
-_models_dirs = [
-    'models/sentvid'
-]
+_models_url = 'https://github.com/DomenSoberlFamnit/BrAId/releases/download/v1.0/'
 _models_files = [
-    ('models/sentvid/VGG19.keras',   '632955d52056f80894ae003d9c0419ca9c805505bea1307f5e42fdca44fbc6ee'),
-    ('models/sentvid/VGG19-1.keras', 'b765a140266b1ab7a3e4b34f297dbf95dc6a2a9fee02893c1fdb5beffccfa734'),
-    ('models/sentvid/VGG19-2.keras', '533f56c8e33acd32b178dabb4af96e6276797408f0e753e6eb18f51d717f6b3d'),
-    ('models/sentvid/VGG19-3.keras', '966a41260db325e6e4f5e0104ed2b50c753e6950a6c52edae68b8ccca59fdaf5'),
-    ('models/sentvid/VGG19-4.keras', '554f3bb6dec74464440bc5f79ab94fc4759694bbeac35d0f86bb7043c3c7e546'),
-    ('models/sentvid/VGG19-5.keras', 'cf92b2e759f77d97c31b78c5ad508828fac3b673efc937c0b4826e96cb918081'),
-    ('models/sentvid/VGG19-6.keras', '690e6d0a133c167ede86caf25f2c4c94725aec732c1b0fbdbdf580bc4ba5d0c8'),
-    ('models/sentvid/VGG19-7.keras', '851225d163790043da24488a6ebd4bfcfca44bb6b16626a3ce6afe5b79f6604a'),
-    ('models/sentvid/VGG19-8.keras', '8b80d0e2197401d477a7c1b29a988892e282dfb8378539b86cd24cffb9220cb9'),
-    ('models/sentvid/VGG19-9.keras', '30cb56202e621ef03fa51fe0ce2d1d872819faf87d2c0fefa2aabf262e129936'),
-    ('models/sentvid/VGG19-10.keras', 'eb34b0ada4c853d1c585327a08cb4bfa16d9c2f4bcd935b4ba0add462fdf6d2d')
+    ('models/sentvid-VGG19.keras', 'sentvid-VGG19.keras', '632955d52056f80894ae003d9c0419ca9c805505bea1307f5e42fdca44fbc6ee')
 ]
 
 _group_index = {
@@ -63,7 +50,7 @@ def _download_model(file):
 
     pbar = _create_progress_bar(f'{file}: ', chunk_total)
 
-    with open(file, 'wb') as f:
+    with open(f'models/{file}', 'wb') as f:
         chunk_count = 0
         for chunk in response.iter_content(chunk_size=1024*1024):
             if chunk:
@@ -89,14 +76,13 @@ def _init_models():
 
     # Check and download BrAId weights.
     if _models['braid'] is None:
-        for dir in _models_dirs:
-            os.makedirs(name=dir, exist_ok=True)
+        os.makedirs(name='models', exist_ok=True)
 
         braid_models = {}
 
         # Download the weights.
         screen_msg = False
-        for (file, hash) in _models_files:
+        for (file, remote, hash) in _models_files:
             file_ok = os.path.exists(file) and _compute_file_hash(file) == hash
 
             if not file_ok:
@@ -104,10 +90,10 @@ def _init_models():
                     print('Downloading models:')
                     screen_msg = True
 
-                _download_model(file)
+                _download_model(remote)
 
         # Load the weights.
-        for (file, _) in _models_files:
+        for (file, _, _) in _models_files:
             braid_models[file] = tf.keras.models.load_model(file)
 
         # Store the loaded models.
