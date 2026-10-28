@@ -102,7 +102,7 @@ class TCN(BraidModel):
             batch_size=32,
             validation_split=0.2,
             shuffle=True,
-            #class_weight={0: 0.7, 1: 5.5},
+            class_weight={0: 1, 1: 282},
             callbacks=[early_stop],
             verbose=1
         )
@@ -158,7 +158,8 @@ class TCN(BraidModel):
             if groups not in self.groups_confusion:
                 self.groups_confusion[groups] = {'positive': 0, 'negative': 0}
 
-            filtered_prediction = evaluation.max_filter(prediction, threshold=class_threshold, kernel_size=9)
+            #filtered_prediction = evaluation.max_filter(prediction, threshold=class_threshold, kernel_size=9)
+            filtered_prediction = prediction
             filtered_predictions.append(filtered_prediction)
 
             tp, fn, fp, mae = evaluation.sample_accuracy(pulses, filtered_prediction, class_threshold, kernel_size)

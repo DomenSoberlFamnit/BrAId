@@ -7,8 +7,6 @@ import matplotlib.ticker as ticker
 from progress.bar import Bar
 from datetime import datetime
 
-import baseline
-
 def signal_data_found(dir_braid, normalized_signals=True):
     if normalized_signals:
         fname_signals = 'nn_normalised_signals.hdf5'
@@ -82,6 +80,9 @@ def generate_samples(
     min_dist = 1000000
     max_dist = 0
     max_axles = 0
+
+    cls_positive = 0
+    cls_negative = 0
 
     allowed_ts = None
     allowed_predictions = {}
@@ -224,6 +225,10 @@ def generate_samples(
             if len(raw_pulses) > max_axles:
                 max_axles = len(raw_pulses)
 
+            # Class balance
+            cls_positive += len(raw_pulses)
+            cls_negative += signal_length - len(raw_pulses)
+
             if output_type == "pulses":
                 pulses = np.zeros(signal_length)
                 
@@ -275,6 +280,8 @@ def generate_samples(
     print(f'Minimal distance between pulses is {min_dist}.')
     print(f'Maximal distance between pulses is {max_dist}.')
     print(f'Corrected {cnt_corrected} signals.')
+    print(f'Class balance: positive {cls_positive}, negative {cls_negative}.')
+    print(f'Positive weight: {round(cls_negative / cls_positive) if cls_positive > 0 else 0}')
 
     print(f'Saving {dir_braid}meta.npy')
     np.save(f'{dir_braid}meta.npy', meta)
@@ -400,6 +407,14 @@ def get_data(
         meta = meta[indices]
         X = X[indices]
         Y = Y[indices]
+
+    return (meta, X, Y)
+
+def add_channel(data):
+    (meta, X, Y) = data
+
+    X = np.expand_dims(X, axis=-1)
+    Y = np.expand_dims(Y, axis=-1)
 
     return (meta, X, Y)
 

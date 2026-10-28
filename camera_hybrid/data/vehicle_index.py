@@ -78,7 +78,7 @@ def process_vehicles(dir_siwim, dir_braid, vehicles, photo_index, data):
         image = content.photos[content.best].image()
         image.save(dst_file)
 
-        data.append({'id':id, 'ts_vehicle':ts, 'ts_photo':entry['timestamp'], 'axles':len(vehicle.axle), 'groups':group2str(vehicle.groups), 'gvw':vehicle.gvw(), 'file':str(int(id / 1000)) + '/' + str(id) + '.png'})
+        data.append({'id':id, 'ts_vehicle':ts, 'ts_photo':entry['timestamp'], 'axles':len(vehicle.axle), 'groups':group2str(vehicle.groups), 'gvw':vehicle.gvw(), 'speed':vehicle.v(), 'lane':vehicle.lane, 'file':str(int(id / 1000)) + '/' + str(id) + '.png'})
         id += 1
 
     print(f'Skipped {skipped} vehicles.')
